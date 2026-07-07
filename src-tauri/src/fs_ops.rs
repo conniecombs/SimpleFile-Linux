@@ -36,12 +36,24 @@ pub struct XdgDirs {
 pub fn get_xdg_dirs() -> Result<XdgDirs, String> {
     if let Some(user_dirs) = directories::UserDirs::new() {
         Ok(XdgDirs {
-            desktop: user_dirs.desktop_dir().map(|p| p.to_string_lossy().into_owned()),
-            documents: user_dirs.document_dir().map(|p| p.to_string_lossy().into_owned()),
-            downloads: user_dirs.download_dir().map(|p| p.to_string_lossy().into_owned()),
-            music: user_dirs.audio_dir().map(|p| p.to_string_lossy().into_owned()),
-            pictures: user_dirs.picture_dir().map(|p| p.to_string_lossy().into_owned()),
-            videos: user_dirs.video_dir().map(|p| p.to_string_lossy().into_owned()),
+            desktop: user_dirs
+                .desktop_dir()
+                .map(|p| p.to_string_lossy().into_owned()),
+            documents: user_dirs
+                .document_dir()
+                .map(|p| p.to_string_lossy().into_owned()),
+            downloads: user_dirs
+                .download_dir()
+                .map(|p| p.to_string_lossy().into_owned()),
+            music: user_dirs
+                .audio_dir()
+                .map(|p| p.to_string_lossy().into_owned()),
+            pictures: user_dirs
+                .picture_dir()
+                .map(|p| p.to_string_lossy().into_owned()),
+            videos: user_dirs
+                .video_dir()
+                .map(|p| p.to_string_lossy().into_owned()),
         })
     } else {
         Err("Failed to determine user directories".into())

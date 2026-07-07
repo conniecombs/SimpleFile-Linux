@@ -126,11 +126,11 @@ pub fn run() {
             });
 
             #[cfg(unix)]
-        {
-            drives_dbus::spawn_dbus_monitor(app.handle().clone());
-        }
+            {
+                drives_dbus::spawn_dbus_monitor(app.handle().clone());
+            }
 
-        Ok(())
+            Ok(())
         })
         .manage(Arc::new(AppState::default()))
         .invoke_handler(tauri::generate_handler![
