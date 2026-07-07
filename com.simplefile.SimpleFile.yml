@@ -1,6 +1,6 @@
 app-id: com.simplefile.SimpleFile
 runtime: org.gnome.Platform
-runtime-version: "46"
+runtime-version: "49"
 sdk: org.gnome.Sdk
 command: simplefile
 finish-args:
@@ -20,10 +20,10 @@ finish-args:
   - --talk-name=org.freedesktop.UDisks2
 
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.node20
+  - org.freedesktop.Sdk.Extension.node24
 
 build-options:
-  append-path: /usr/lib/sdk/node20/bin
+  append-path: /usr/lib/sdk/node24/bin
   build-args:
     - --share=network
   env:
