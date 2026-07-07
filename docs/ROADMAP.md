@@ -432,7 +432,7 @@ sources into SimpleFile.
 - [ ] `CODE_OF_CONDUCT.md` (Contributor Covenant)
 - [ ] `SECURITY.md` (how to report vulnerabilities privately; response SLA)
 - [ ] `SUPPORT.md` (directing users to Discussions, not Issues, for questions)
-- [x] Update `LICENSE` file to be a standalone proprietary license file at the repo root
+- [x] Keep the root `LICENSE` file aligned with Apache-2.0 project licensing
 
 ### 6.6 Releases
 

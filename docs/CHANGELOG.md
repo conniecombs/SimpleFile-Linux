@@ -8,6 +8,18 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Added
+- Added the Tauri CLI as a frontend development dependency so updater signing
+  keys and local Tauri commands can be run through the repository toolchain.
+
+### Changed
+- Rewrote the README around the current Linux-only project scope, Linux release
+  artifacts, current build scripts, and signed updater setup.
+- Aligned npm package metadata and user-facing license text with the Apache-2.0
+  license file.
+- Updated the local Tauri packaging script to run through the repository's npm
+  Tauri CLI instead of requiring a global Cargo Tauri install.
+
 ### Fixed
 - Manual release workflow dispatch now defaults to the checked-in manifest
   version when the version input is blank, accepts either bare semantic versions
@@ -17,6 +29,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
   `TAURI_SIGNING_PRIVATE_KEY` by producing installer-only artifacts with the
   local Tauri config override, while published updater releases still require
   the signing secret.
+- Updated the checked-in updater public key to match the newly generated local
+  signing keypair.
 
 ---
 
@@ -37,10 +51,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
   [`RELEASE_1.1.0.md`](RELEASE_1.1.0.md).
 
 ### Changed
-- SimpleFile is now proprietary software. The former MIT license text was
-  replaced with an all-rights-reserved project license, package metadata now
-  declares the app as unlicensed/proprietary, and contributor terms now grant
-  conniecombs the rights needed to incorporate contributions into SimpleFile.
+- SimpleFile licensing is documented through the Apache-2.0 license file at the
+  repository root, and package metadata uses the Apache-2.0 SPDX identifier.
 - The repository and updater documentation now point to
   `conniecombs/SimpleFile-Linux`.
 - The desktop app now ships from the Svelte/Vite entry generated into

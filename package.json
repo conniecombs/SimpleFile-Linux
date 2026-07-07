@@ -1,6 +1,6 @@
 {
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "npm --prefix frontend exec tauri dev",
@@ -15,7 +15,7 @@
     "check:rust": "cd src-tauri && cargo fmt --all -- --check && cargo test --locked --all-features && cargo clippy --locked --all-targets --all-features -- -D warnings",
     "check:security": "node scripts/cargo-audit-release.mjs",
     "check:release": "npm run check && npm run check:rust && npm run check:security",
-    "build:tauri:local": "cd src-tauri && cargo tauri build --ci --config tauri.local.conf.json",
+    "build:tauri:local": "npm --prefix frontend exec -- tauri build --ci --config src-tauri/tauri.local.conf.json",
     "smoke:settings": "node scripts/smoke-settings-startup.mjs",
     "release:local": "npm run check:release && npm run build:tauri:local"
   }

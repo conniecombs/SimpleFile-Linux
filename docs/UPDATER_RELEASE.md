@@ -12,16 +12,16 @@ https://github.com/conniecombs/SimpleFile-Linux/releases/latest/download/latest.
 
 The updater private key must never be committed. Generate it locally:
 
-```powershell
-New-Item -ItemType Directory -Force -Path .\.secrets | Out-Null
-cargo tauri signer generate --write-keys .\.secrets\simplefile-updater.key
+```bash
+mkdir -p .secrets
+npm --prefix frontend exec -- tauri signer generate --ci -w .secrets/simplefile-updater.key
 ```
 
 The public key from `.secrets\simplefile-updater.key.pub` belongs in
 `src-tauri/tauri.conf.json`. The private key content belongs in the GitHub
 repository secret named `TAURI_SIGNING_PRIVATE_KEY`.
 
-If you generated the key with a password, also create this repository secret:
+If you generate the key with a password, also create this repository secret:
 
 ```text
 TAURI_SIGNING_PRIVATE_KEY_PASSWORD
@@ -37,7 +37,7 @@ tracked.
 3. Create a tag such as `v1.1.0`, or run the `Release` GitHub Actions workflow
    manually. Leave the manual version blank to use the checked-in manifest
    version, or enter either `1.1.0` or `v1.1.0`.
-4. The release workflow runs quality gates and builds each platform. If
+4. The release workflow runs quality gates and builds Linux x64 artifacts. If
    `TAURI_SIGNING_PRIVATE_KEY` is configured, it signs updater artifacts, uploads
    signatures, and uploads `latest.json`. Without that secret, draft release
    builds use `src-tauri/tauri.local.conf.json` and upload installer artifacts
@@ -50,7 +50,7 @@ tracked.
 
 Run these before pushing a release branch:
 
-```powershell
+```bash
 npm run check:release
 ```
 
@@ -58,33 +58,22 @@ That command runs the Svelte production build and bridge builds, legacy
 frontend syntax/invoke/updater checks, Rust formatting, Rust tests, Clippy, and
 the Rust dependency audit using the same advisory ignore policy as CI.
 
-To also prove that local Windows installer packaging works without requiring
-the updater private key, run:
+To also prove that local Linux packaging works without requiring the updater
+private key, run:
 
-```powershell
+```bash
 npm run release:local
 ```
 
 That command keeps release signing enabled in `tauri.conf.json`, but passes the
 local Tauri config override in `src-tauri/tauri.local.conf.json` so updater
-artifacts are not created.
-Signed updater artifacts are still required before publishing an updater-enabled
-GitHub release.
-
-After a local bundle build, smoke-test the release executable startup path:
-
-```powershell
-npm run smoke:release
-```
-
-The smoke test launches `src-tauri/target/release/simplefile.exe`, waits for the
-main `SimpleFile - File Explorer` window, and closes only the process it
-started.
+artifacts are not created. Signed updater artifacts are still required before
+publishing an updater-enabled GitHub release.
 
 To smoke-test settings persistence and startup location selection without
 launching the desktop app, run:
 
-```powershell
+```bash
 npm run smoke:settings
 ```
 
@@ -92,34 +81,11 @@ That script verifies `simplefile-settings`, `simplefile-tabs`, Custom Path
 startup, Home startup, Last Used startup, stale active-tab fallback, and Custom
 Path fallback when the saved path is blank.
 
-To smoke-test the MSI artifact without modifying an existing SimpleFile
-installation, run:
-
-```powershell
-npm run smoke:msi
-```
-
-That script performs an administrative MSI extraction to a temporary folder,
-launches the extracted executable, waits for the main window, closes the process
-it started, and removes the temporary extraction folder.
-
-If SimpleFile is not already installed, run a full silent NSIS install smoke
-test:
-
-```powershell
-npm run smoke:installer
-```
-
-The install smoke test installs the latest local NSIS setup executable, verifies
-the uninstall registry entry and executable version, launches the installed app,
-closes the process it started, and uninstalls the app. To keep the installed app
-for manual testing, run the script directly with `-KeepInstalled`.
-
 For a local signed Tauri bundle, load the private key content before building:
 
-```powershell
-$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content .\.secrets\simplefile-updater.key -Raw
-cargo tauri build --ci
+```bash
+export TAURI_SIGNING_PRIVATE_KEY="$(cat .secrets/simplefile-updater.key)"
+npm --prefix frontend exec -- tauri build --ci
 ```
 
 The first updater-enabled release must be installed manually by existing users.

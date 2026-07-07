@@ -495,7 +495,7 @@
                     <div class="about-heading">
                         <h2 class="about-title">SimpleFile</h2>
                         <p class="about-version">Version <span id="about-version-value">Checking...</span></p>
-                        <p class="about-description">A fast desktop file explorer for local files, archives, dual-pane workflows, and cloud-backed locations.</p>
+                        <p class="about-description">A fast Linux desktop file explorer for local files, archives, mounted volumes, and dual-pane workflows.</p>
                     </div>
                 </div>
 
@@ -526,7 +526,7 @@
                     </div>
                     <div class="about-detail-row">
                         <span>License</span>
-                        <strong id="about-license-value">Proprietary - All Rights Reserved</strong>
+                        <strong id="about-license-value">Apache-2.0</strong>
                     </div>
                 </div>
 
@@ -536,19 +536,15 @@
                         <li>Tabbed and dual-pane file management</li>
                         <li>Bookmarks, recent locations, search, and quick filtering</li>
                         <li>Archive creation, extraction, previews, metadata, and checksums</li>
-                        <li>Remote drives and cloud transfers for supported providers</li>
+                        <li>Linux desktop integration, mounted-volume awareness, and update checks</li>
                         <li>Integrated terminal, cleanup tools, Git status, and open-with workflows</li>
                     </ul>
                 </section>
 
                 <section class="about-section">
-                    <h4>Cloud Drive Credits</h4>
-                    <p><strong>rclone</strong> powers SimpleFile cloud remotes, transfers, and cloud mount integration. rclone was created by Nick Craig-Wood and is maintained by the rclone contributors.</p>
-                    <p><strong>WinFsp</strong> provides the Windows filesystem driver/runtime used by rclone when mounting cloud drives as drive letters. WinFsp was created by Bill Zissimopoulos and is maintained by the WinFsp contributors.</p>
-                    <div class="about-link-row" aria-label="Credit links">
-                        <button type="button" class="about-link-btn" data-about-url="https://rclone.org/">rclone.org</button>
-                        <button type="button" class="about-link-btn" data-about-url="https://winfsp.dev/">winfsp.dev</button>
-                    </div>
+                    <h4>Built With</h4>
+                    <p><strong>Tauri 2</strong> provides the Linux desktop runtime and Rust command bridge.</p>
+                    <p><strong>Svelte 5</strong> powers the frontend shell, dialogs, and file-manager workflows.</p>
                 </section>
 
                 <section class="about-section">
