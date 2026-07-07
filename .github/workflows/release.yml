@@ -164,15 +164,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Windows x64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-          - name: macOS x64
-            os: macos-15-intel
-            target: x86_64-apple-darwin
-          - name: macOS ARM64
-            os: macos-15
-            target: aarch64-apple-darwin
           - name: Linux x64
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
@@ -237,7 +228,7 @@ jobs:
           releaseBody: |
             ## SimpleFile ${{ needs.validate.outputs.version }}
 
-            Cross-platform installers are attached below.
+            Linux installers are attached below.
             See [docs/CHANGELOG.md](https://github.com/conniecombs/SimpleFile-Linux/blob/main/docs/CHANGELOG.md) for release notes and upgrade details.
           releaseDraft: true
           prerelease: ${{ needs.validate.outputs.prerelease }}
