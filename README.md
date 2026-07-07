@@ -4,10 +4,10 @@
 
 **A modern, cross-platform file manager with a fast Rust/Tauri backend and a lightweight Svelte frontend.**
 
-[![CI](https://github.com/conniecombs/SimpleFile-Svelte/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/conniecombs/SimpleFile-Svelte/actions/workflows/ci.yml)
-[![Release](https://github.com/conniecombs/SimpleFile-Svelte/actions/workflows/release.yml/badge.svg)](https://github.com/conniecombs/SimpleFile-Svelte/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/conniecombs/SimpleFile-Svelte/releases)
-[![License: Proprietary](https://img.shields.io/badge/license-proprietary-red)](LICENSE)
+[![CI](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/ci.yml)
+[![Release](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/release.yml/badge.svg)](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/release.yml)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/conniecombs/SimpleFile-Linux/releases)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-purple)](https://tauri.app)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](#build)
 [![Security Policy](https://img.shields.io/badge/security-policy-informational)](docs/SECURITY.md)
@@ -46,6 +46,9 @@ SimpleFile is designed for users who want a practical file manager that can hand
 - **Native operations with guardrails:** Rust commands handle file operations, path validation, conflict handling, symlink-aware copy/delete behavior, and scoped process launching.
 - **Cloud drives are first-class workflows:** rclone-backed providers can browse, transfer, rename, delete, create folders, copy cloud-to-cloud, and mount as local drives. Windows mounts use high drive letters and WinFsp-specific freeze safeguards.
 - **Power metadata without leaving the file manager:** checksums, EXIF, image dimensions, permissions, symlink targets, Git state, duplicate groups, large-file scans, and text file comparisons are built in.
+- **Modern Typescript Architecture:** The frontend is entirely powered by native Svelte 5 state runes and strict TypeScript modules, leaving behind older vanilla JS implementations.
+- **Extremely Fast Rendering:** A custom math-based UI virtualization engine ensures instant rendering and smooth 60fps scrolling even with 10,000+ files in a single directory.
+- **Native Wayland Compatibility:** Tauri and WebKitGTK are fully configured for Wayland with NVIDIA WebKit rendering fixes and native GTK backend (`GDK_BACKEND=wayland,x11`) injections.
 - **Fast local UI:** The app ships from a compiled Svelte entry while retaining focused JavaScript workflow modules for mature file-manager behavior.
 - **Practical safety features:** undo/redo, undoable toasts, delete-to-trash fallback handling, cancellable long-running jobs, transfer progress, and mount-specific background-scan suppression.
 - **Documented release and updater path:** signed updater artifacts, GitHub-hosted `latest.json`, release validation, and rclone/WinFsp behavior are documented in this repository.
@@ -219,6 +222,7 @@ SimpleFile can show Git repository status for the current folder.
 SimpleFile supports richer two-way drag-and-drop workflows.
 
 - **App to app / desktop drag-out** uses transferable URI/text payloads.
+- **Global Drag-and-Drop** support enables natively dragging items seamlessly from both the folder tree sidebar and the main window list/grid.
 - **OS to app drops** can copy files into the current directory.
 - **Folder-targeted drops** can resolve a destination from hovered folder items when available.
 - **Internal drag-and-drop** works across the file list and dual panes.
@@ -348,7 +352,7 @@ cargo install tauri-cli --version "^2.0.0" --locked
 ### Run in Development Mode
 
 ```bash
-git clone https://github.com/conniecombs/SimpleFile-Svelte.git
+git clone https://github.com/conniecombs/SimpleFile-Linux.git
 cd SimpleFile
 cargo tauri dev
 ```
