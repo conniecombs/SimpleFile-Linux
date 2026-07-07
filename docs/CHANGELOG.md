@@ -8,7 +8,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
-No unreleased changes.
+### Fixed
+- Manual release workflow dispatch now accepts either bare semantic versions
+  such as `1.1.0` or tag-style versions such as `v1.1.0` and normalizes both
+  forms to the release tag value.
 
 ---
 

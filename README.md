@@ -575,15 +575,18 @@ The repository includes GitHub Actions workflows for quality checks, security ch
 
 ### Release workflow
 
-`release.yml` handles version validation, release quality gates, cross-platform Tauri builds, signed updater artifact generation, `latest.json` upload through `tauri-apps/tauri-action@action-v0.6.2`, installer artifact upload, and optional publishing. GitHub Releases serve as the updater endpoint.
+`release.yml` handles version validation, release quality gates, cross-platform Tauri builds, signed updater artifact generation, `latest.json` upload through `tauri-apps/tauri-action@action-v1.0.0`, installer artifact upload, and optional publishing. GitHub Releases serve as the updater endpoint.
 
 ### Release version rules
 
-Release tags and manual release versions must use the format:
+Release tags must use the format:
 
 ```text
 vMAJOR.MINOR.PATCH
 ```
+
+Manual release versions may use either `MAJOR.MINOR.PATCH` or
+`vMAJOR.MINOR.PATCH`; the workflow normalizes them to the release tag format.
 
 The version must match both:
 

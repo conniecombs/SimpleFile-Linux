@@ -55,7 +55,7 @@ The release workflow will:
 4. Verify the updater signing secret is available for release builds.
 5. Create or update a draft GitHub release and upload installer artifacts, signed updater
    artifacts, signatures, and `latest.json` through
-   `tauri-apps/tauri-action@action-v0.6.2`.
+   `tauri-apps/tauri-action@action-v1.0.0`.
 6. Keep tag-triggered releases as drafts by default so assets can be reviewed before publishing.
 7. Publish the release only after all platform builds succeed when manual `draft=false` is selected.
 
@@ -65,7 +65,7 @@ You can also trigger a release manually:
 
 1. Go to Actions → Release.
 2. Click **Run workflow**.
-3. Enter the version, for example `v1.0.0`.
+3. Enter the version, for example `1.0.0` or `v1.0.0`.
 4. Choose whether to create a draft release.
 
 If `draft` is set to `false`, the workflow publishes the release after all platform builds succeed.
