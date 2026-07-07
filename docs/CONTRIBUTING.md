@@ -441,7 +441,6 @@ acknowledge reports within 48 hours and publish a fix within 14 days for critica
 ## License
 
 By contributing to SimpleFile, you agree that your contributions may be incorporated into
-SimpleFile and distributed under the SimpleFile Proprietary License in [`LICENSE`](../LICENSE).
-You grant conniecombs a perpetual, worldwide, irrevocable, royalty-free license to use,
-modify, reproduce, distribute, sublicense, and otherwise exploit your contribution as part
-of SimpleFile.
+SimpleFile and distributed under the Apache License, Version 2.0, in
+[`LICENSE`](../LICENSE). Unless you explicitly state otherwise, submitted
+contributions are licensed under Apache-2.0.

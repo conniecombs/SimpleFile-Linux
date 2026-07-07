@@ -1351,7 +1351,7 @@ async function invokeDevCommand<Name extends TauriCommandName>(
         description: 'SimpleFile browser development shell',
         framework: 'Svelte',
         identifier: 'simplefile.dev',
-        license: 'UNLICENSED',
+        license: 'Apache-2.0',
         platform: 'browser',
         product_name: 'SimpleFile',
         repository: '',
