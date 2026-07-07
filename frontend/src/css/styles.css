@@ -1,0 +1,266 @@
+/* ============================================================================
+   SimpleFile – Main Stylesheet
+   This file is the single entry-point loaded by index.html.
+   All styles live in the modules/ subdirectory; import order matters
+   because later modules can build on variables and base rules defined earlier.
+   ============================================================================ */
+
+/* 1. Design tokens, CSS variables, global reset */
+@import url("modules/variables.css");
+
+/* 2. Top-level structural layout shells */
+@import url("modules/layout.css");
+
+/* 3. Navigation toolbar, path bar, breadcrumb, search, column headers */
+@import url("modules/toolbar.css");
+
+/* 4. File list scroll container, list items, grid view, icon-size overrides */
+@import url("modules/file-list.css");
+
+/* 5. Sidebar sections: bookmarks, recent locations, tree-view container */
+@import url("modules/sidebar-nav.css");
+
+/* 6. Directory tree nodes, expand arrows, animated collapse container */
+@import url("modules/tree-view.css");
+
+/* 7. Right-click context menu */
+@import url("modules/context-menu.css");
+
+/* 8. Generic modal overlay, shared buttons, form controls, progress dialog */
+@import url("modules/modal.css");
+
+/* 9. Tab bar */
+@import url("modules/tabs.css");
+
+/* 10. Collapsible side preview pane */
+@import url("modules/preview.css");
+
+/* 11. Quick Look full-screen overlay */
+@import url("modules/quick-look.css");
+
+/* 12. Settings modal layout and controls */
+@import url("modules/settings.css");
+
+/* 13. Archive viewer and create-archive dialog */
+@import url("modules/archive.css");
+
+/* 13a. Advanced multi-file rename dialog */
+@import url("modules/advanced-rename.css");
+
+/* 14. Two-pane split layout */
+@import url("modules/dual-pane.css");
+
+/* 15. Keyboard shortcuts and About dialogs */
+@import url("modules/overlays.css");
+
+/* 16. File-item state modifiers, drag-and-drop ghost, selection rect */
+@import url("modules/interactions.css");
+
+/* 17. Shimmer animation and skeleton placeholder shapes */
+@import url("modules/skeleton.css");
+
+/* 18. Scrollbar, loading spinner, empty state, toast notifications */
+@import url("modules/utilities.css");
+
+/* 19. Command Palette */
+@import url("modules/command-palette.css");
+
+
+/* File color labels */
+.file-tag-badge {
+    margin-left: 0.35rem;
+    font-size: 0.85em;
+    vertical-align: middle;
+}
+.grid-item .file-tag-badge {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.4rem;
+}
+.toast .toast-undo {
+    margin-left: 0.75rem;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    pointer-events: auto;
+    text-decoration: underline;
+}
+
+/* Transfer Manager */
+.transfer-manager-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(420px, 92vw);
+    height: 100vh;
+    background: var(--color-surface, #1f2937);
+    color: var(--color-text, #f9fafb);
+    box-shadow: -8px 0 24px rgba(0,0,0,0.35);
+    transform: translateX(110%);
+    transition: transform 180ms ease;
+    z-index: 2500;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--color-border, rgba(255,255,255,0.12));
+}
+.transfer-manager-panel.open { transform: translateX(0); }
+.transfer-manager-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.12));
+}
+.transfer-manager-header h3 { margin: 0; font-size: 1rem; }
+.transfer-manager-subtitle { margin: .25rem 0 0; opacity: .7; font-size: .85rem; }
+.transfer-manager-close {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+.transfer-manager-toolbar { padding: .75rem 1rem; border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.12)); }
+.transfer-manager-list { padding: .75rem; overflow: auto; flex: 1; }
+.transfer-empty { opacity: .7; padding: 1rem; text-align: center; }
+.transfer-item {
+    border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+    border-radius: .55rem;
+    padding: .75rem;
+    margin-bottom: .75rem;
+    background: rgba(255,255,255,0.04);
+}
+.transfer-row-main { display: flex; align-items: center; gap: .65rem; }
+.transfer-direction { font-size: 1.15rem; }
+.transfer-meta { min-width: 0; flex: 1; }
+.transfer-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.transfer-provider { opacity: .75; font-size: .82rem; margin-top: .15rem; }
+.transfer-percent { font-variant-numeric: tabular-nums; font-size: .85rem; opacity: .85; }
+.transfer-progress { height: .45rem; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; margin-top: .6rem; }
+.transfer-progress-fill { height: 100%; background: currentColor; opacity: .8; transition: width 160ms ease; }
+.transfer-actions { display: flex; gap: .4rem; margin-top: .65rem; flex-wrap: wrap; }
+.transfer-error { margin-top: .5rem; color: #ffb4b4; font-size: .85rem; word-break: break-word; }
+.transfer-completed .transfer-provider { color: #8ee59a; }
+.transfer-failed .transfer-provider { color: #ffb4b4; }
+.transfer-cancelled .transfer-provider { color: #f6d365; }
+
+/* Plugin-driven cloud browser */
+.cloud-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+    z-index: 2600;
+}
+.cloud-overlay.cloud-overlay--visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+.cloud-dialog {
+    width: min(860px, 94vw);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface, var(--color-surface, #1f2937));
+    color: var(--text, var(--color-text, #f9fafb));
+    border: 1px solid var(--border, var(--color-border, rgba(255,255,255,0.12)));
+    border-radius: 12px;
+    box-shadow: 0 18px 56px rgba(0,0,0,0.45);
+    overflow: hidden;
+}
+.cloud-dialog-header,
+.cloud-dialog-back,
+.cloud-browser-toolbar {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border, var(--color-border, rgba(255,255,255,0.12)));
+}
+.cloud-dialog-title { margin: 0; font-size: 1.05rem; flex: 1; }
+.cloud-dialog-close,
+.cloud-back-btn,
+.cloud-entry-btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+.cloud-dialog-close { font-size: 1.35rem; margin-left: auto; }
+.cloud-dialog-body { padding: 1rem; overflow: auto; }
+.cloud-picker-hint,
+.cloud-auth-hint { margin-top: 0; color: var(--text-muted, #a7b0be); }
+.cloud-provider-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: .75rem;
+}
+.cloud-provider-card {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: .35rem .75rem;
+    align-items: start;
+    text-align: left;
+    padding: .9rem;
+    border-radius: 10px;
+    border: 1px solid var(--border, rgba(255,255,255,0.14));
+    background: rgba(255,255,255,0.04);
+    color: inherit;
+    cursor: pointer;
+}
+.cloud-provider-card:hover { background: rgba(255,255,255,0.08); }
+.cloud-provider-icon { grid-row: span 2; font-size: 1.4rem; }
+.cloud-provider-name { font-weight: 700; }
+.cloud-provider-desc { font-size: .82rem; color: var(--text-muted, #a7b0be); }
+.form-label-muted { color: var(--text-muted, #a7b0be); font-size: .85em; font-weight: 400; }
+.cloud-auth-dialog .form-group { margin-bottom: .75rem; }
+.cloud-auth-dialog label { display: block; margin-bottom: .3rem; font-weight: 600; }
+.cloud-auth-dialog input,
+.cloud-auth-dialog select {
+    width: 100%;
+    padding: .55rem .65rem;
+    border-radius: 8px;
+    border: 1px solid var(--border, rgba(255,255,255,0.18));
+    background: rgba(0,0,0,0.18);
+    color: inherit;
+}
+.cloud-auth-advanced { margin: .75rem 0; }
+.cloud-auth-advanced summary {
+    color: var(--text-muted, #a7b0be);
+    cursor: pointer;
+    font-weight: 600;
+}
+.cloud-auth-advanced[open] summary { margin-bottom: .5rem; }
+.cloud-auth-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
+.cloud-auth-status { margin-top: .75rem; font-size: .9rem; }
+.cloud-auth-status--error { color: #ffb4b4; }
+.cloud-auth-status--success { color: #8ee59a; }
+.cloud-auth-status--info { color: #9ecbff; }
+.cloud-browser-toolbar { padding: .75rem 0 1rem; border-bottom: 0; }
+.cloud-browser-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cloud-browser-list { border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 10px; overflow: hidden; }
+.cloud-entry {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto auto auto;
+    gap: .65rem;
+    align-items: center;
+    padding: .55rem .75rem;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+.cloud-entry:last-child { border-bottom: 0; }
+.cloud-entry:hover { background: rgba(255,255,255,0.05); }
+.cloud-entry-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cloud-entry-size,
+.cloud-entry-modified { color: var(--text-muted, #a7b0be); font-size: .82rem; }
+.cloud-entry-actions { display: flex; gap: .25rem; }
+.cloud-loading,
+.cloud-empty,
+.cloud-error { padding: 1rem; color: var(--text-muted, #a7b0be); }
+.cloud-error { color: #ffb4b4; }
