@@ -46,7 +46,8 @@ jobs:
             librsvg2-dev \
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev \
-            patchelf
+            patchelf \
+            rpm
 
       - name: Check formatting
         working-directory: src-tauri
@@ -163,7 +164,8 @@ jobs:
             librsvg2-dev \
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev \
-            patchelf
+            patchelf \
+            rpm
 
       - name: Build backend
         working-directory: src-tauri
