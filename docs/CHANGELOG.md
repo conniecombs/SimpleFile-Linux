@@ -13,6 +13,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
   version when the version input is blank, accepts either bare semantic versions
   such as `1.1.0` or tag-style versions such as `v1.1.0`, and reports explicit
   GitHub Actions annotations for invalid or mismatched inputs.
+- Draft release workflow builds can now proceed without
+  `TAURI_SIGNING_PRIVATE_KEY` by producing installer-only artifacts with the
+  local Tauri config override, while published updater releases still require
+  the signing secret.
 
 ---
 

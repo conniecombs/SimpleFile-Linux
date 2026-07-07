@@ -52,7 +52,8 @@ The release workflow will:
    - macOS x64 / Intel
    - macOS ARM64 / Apple Silicon
    - Linux x64
-4. Verify the updater signing secret is available for release builds.
+4. Resolve updater signing mode. Draft releases can build installer-only artifacts
+   without signing secrets; published updater releases require `TAURI_SIGNING_PRIVATE_KEY`.
 5. Create or update a draft GitHub release and upload installer artifacts, signed updater
    artifacts, signatures, and `latest.json` through
    `tauri-apps/tauri-action@action-v1.0.0`.
@@ -103,6 +104,10 @@ The app checks `https://github.com/conniecombs/SimpleFile-Linux/releases/latest/
    - `bundle.createUpdaterArtifacts` must be `true`.
    - `plugins.updater.pubkey` must contain the updater public key.
    - `plugins.updater.endpoints` must point at the GitHub release `latest.json`.
+
+Draft release builds can run without signing secrets. In that case, the workflow
+uses `src-tauri/tauri.local.conf.json` and uploads installer artifacts only.
+Published releases with updater artifacts still require `TAURI_SIGNING_PRIVATE_KEY`.
 
 The first updater-enabled release must be installed manually by existing users.
 After that, future published releases can be installed through Settings -> App Updates.

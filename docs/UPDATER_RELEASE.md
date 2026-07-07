@@ -37,9 +37,13 @@ tracked.
 3. Create a tag such as `v1.1.0`, or run the `Release` GitHub Actions workflow
    manually. Leave the manual version blank to use the checked-in manifest
    version, or enter either `1.1.0` or `v1.1.0`.
-4. The release workflow runs quality gates, builds each platform, signs updater
-   artifacts, uploads signatures, and uploads `latest.json`.
-5. Publish the GitHub release when ready. Draft releases are not returned by the
+4. The release workflow runs quality gates and builds each platform. If
+   `TAURI_SIGNING_PRIVATE_KEY` is configured, it signs updater artifacts, uploads
+   signatures, and uploads `latest.json`. Without that secret, draft release
+   builds use `src-tauri/tauri.local.conf.json` and upload installer artifacts
+   only.
+5. Publish the GitHub release when ready. Published updater releases require the
+   signing secret. Draft releases are not returned by the
    `releases/latest` endpoint, so installed apps only see published releases.
 
 ## Validation
@@ -64,7 +68,8 @@ npm run release:local
 That command keeps release signing enabled in `tauri.conf.json`, but passes the
 local Tauri config override in `src-tauri/tauri.local.conf.json` so updater
 artifacts are not created.
-Signed updater artifacts are still required for the real GitHub release flow.
+Signed updater artifacts are still required before publishing an updater-enabled
+GitHub release.
 
 After a local bundle build, smoke-test the release executable startup path:
 

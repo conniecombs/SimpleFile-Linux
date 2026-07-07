@@ -603,9 +603,10 @@ The version must match both:
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Optional passphrase for the signing key |
 
 The updater plugin is configured in `src-tauri/tauri.conf.json` with a GitHub
-`latest.json` endpoint. Release builds fail early when
-`TAURI_SIGNING_PRIVATE_KEY` is missing so a published release cannot silently
-omit updater signatures.
+`latest.json` endpoint. Draft release builds can run without
+`TAURI_SIGNING_PRIVATE_KEY`; those builds use `src-tauri/tauri.local.conf.json`
+and upload installer artifacts only. Published updater releases fail early when
+the signing key is missing so they cannot silently omit updater signatures.
 
 ---
 

@@ -213,15 +213,24 @@ jobs:
             patchelf \
             rpm
 
-      - name: Verify updater signing secret
+      - name: Resolve updater signing mode
+        id: signing
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          RELEASE_DRAFT: ${{ needs.validate.outputs.draft }}
         run: |
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            echo "::error::The TAURI_SIGNING_PRIVATE_KEY repository secret is required to build signed updater artifacts."
-            echo "::error::Generate it with 'cargo tauri signer generate --write-keys .secrets/simplefile-updater.key', then store the private key content as the secret."
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "config_args=" >> "$GITHUB_OUTPUT"
+            echo "upload_updater=true" >> "$GITHUB_OUTPUT"
+          elif [ "$RELEASE_DRAFT" = "false" ]; then
+            echo "::error title=Missing updater signing secret::The TAURI_SIGNING_PRIVATE_KEY repository secret is required before publishing a signed updater release."
+            echo "::error::Generate it with 'cargo tauri signer generate --write-keys .secrets/simplefile-updater.key', then store the private key content as the repository secret."
             exit 1
+          else
+            echo "::warning title=Unsigned draft release::TAURI_SIGNING_PRIVATE_KEY is not configured. Building draft installer artifacts only; updater artifacts, signatures, and latest.json will be skipped."
+            echo "config_args=--config src-tauri/tauri.local.conf.json" >> "$GITHUB_OUTPUT"
+            echo "upload_updater=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and upload release assets
@@ -240,10 +249,10 @@ jobs:
             See [docs/CHANGELOG.md](https://github.com/conniecombs/SimpleFile-Linux/blob/main/docs/CHANGELOG.md) for release notes and upgrade details.
           releaseDraft: true
           prerelease: ${{ needs.validate.outputs.prerelease }}
-          uploadUpdaterJson: true
-          uploadUpdaterSignatures: true
+          uploadUpdaterJson: ${{ steps.signing.outputs.upload_updater }}
+          uploadUpdaterSignatures: ${{ steps.signing.outputs.upload_updater }}
           updaterJsonPreferNsis: true
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} ${{ steps.signing.outputs.config_args }}
 
   publish:
     name: Publish release
