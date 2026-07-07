@@ -67,16 +67,22 @@ pub(crate) fn get_file_entry(path: &PathBuf) -> Option<FileEntry> {
     // Read Unix permissions as an "rwxr-xr-x" string
     #[cfg(unix)]
     let (permissions, mode, uid, gid) = {
-        use std::os::unix::fs::PermissionsExt;
         use std::os::unix::fs::MetadataExt;
+        use std::os::unix::fs::PermissionsExt;
         let mode = metadata.permissions().mode();
         let raw_mode = metadata.mode();
         let uid = metadata.uid();
         let gid = metadata.gid();
-        (Some(mode_to_string(mode)), Some(raw_mode), Some(uid), Some(gid))
+        (
+            Some(mode_to_string(mode)),
+            Some(raw_mode),
+            Some(uid),
+            Some(gid),
+        )
     };
     #[cfg(not(unix))]
-    let (permissions, mode, uid, gid): (Option<String>, Option<u32>, Option<u32>, Option<u32>) = (None, None, None, None);
+    let (permissions, mode, uid, gid): (Option<String>, Option<u32>, Option<u32>, Option<u32>) =
+        (None, None, None, None);
 
     Some(FileEntry {
         name,

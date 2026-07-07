@@ -2,9 +2,9 @@ use crate::models::{FilePreview, ThumbnailResult};
 
 use crate::utils::validate_existing_path_no_resolve;
 use std::fs;
+use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri_plugin_opener::OpenerExt;
-use std::path::PathBuf;
 
 fn hex_encode(bytes: impl AsRef<[u8]>) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
@@ -197,16 +197,18 @@ pub fn generate_thumbnail(path: String, size: Option<u32>) -> Result<String, Str
     let uri = reqwest::Url::from_file_path(&path_buf)
         .map_err(|_| "Failed to create file URI".to_string())?
         .to_string();
-    
+
     use md5::Md5;
     use sha2::Digest;
     let mut hasher = Md5::new();
     hasher.update(uri.as_bytes());
     let md5_hash = hex_encode(hasher.finalize());
-    
+
     let cache_dir = get_thumbnail_cache_dir();
-    let cache_path = cache_dir.as_ref().map(|dir| dir.join(format!("{md5_hash}.png")));
-    
+    let cache_path = cache_dir
+        .as_ref()
+        .map(|dir| dir.join(format!("{md5_hash}.png")));
+
     let original_mtime = fs::metadata(&path_buf).and_then(|m| m.modified()).ok();
 
     if let Some(ref cp) = cache_path {
@@ -225,22 +227,24 @@ pub fn generate_thumbnail(path: String, size: Option<u32>) -> Result<String, Str
     let img = image::open(&path_buf).map_err(|e| format!("Failed to open image: {e}"))?;
     // Let the image library handle aspect-ratio-preserving resize
     let thumbnail = img.thumbnail(thumb_size, thumb_size);
-    
+
     // Encode with png crate to add Freedesktop tEXt chunks
     let mut buffer = Vec::new();
     {
         let mut encoder = png::Encoder::new(&mut buffer, thumbnail.width(), thumbnail.height());
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
-        
+
         let meta = fs::metadata(&path_buf).ok();
-        let mtime = meta.as_ref()
+        let mtime = meta
+            .as_ref()
             .and_then(|m| m.modified().ok())
             .and_then(|m| m.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs().to_string())
             .unwrap_or_default();
-            
-        let size_str = meta.as_ref()
+
+        let size_str = meta
+            .as_ref()
             .map(|m| m.len().to_string())
             .unwrap_or_default();
 
@@ -252,19 +256,23 @@ pub fn generate_thumbnail(path: String, size: Option<u32>) -> Result<String, Str
             "bmp" => "image/bmp",
             _ => "application/octet-stream",
         };
-        
+
         let _ = encoder.add_text_chunk("Thumb::URI".to_string(), uri);
         let _ = encoder.add_text_chunk("Thumb::MTime".to_string(), mtime);
         let _ = encoder.add_text_chunk("Thumb::Size".to_string(), size_str);
         let _ = encoder.add_text_chunk("Thumb::Mimetype".to_string(), mime.to_string());
-        
-        let mut writer = encoder.write_header().map_err(|e| format!("Failed to write PNG header: {e}"))?;
+
+        let mut writer = encoder
+            .write_header()
+            .map_err(|e| format!("Failed to write PNG header: {e}"))?;
         let rgba = thumbnail.into_rgba8();
-        writer.write_image_data(&rgba).map_err(|e| format!("Failed to write PNG data: {e}"))?;
+        writer
+            .write_image_data(&rgba)
+            .map_err(|e| format!("Failed to write PNG data: {e}"))?;
     }
-    
+
     let image_bytes = buffer;
-    
+
     // Save to cache
     if let Some(ref cp) = cache_path {
         if let Some(dir) = cache_dir {

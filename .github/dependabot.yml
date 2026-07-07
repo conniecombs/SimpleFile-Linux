@@ -28,15 +28,6 @@ updates:
       - "dependencies"
       - "ci"
 
-  # NPM dependencies in root
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "npm"
 
   # NPM dependencies in frontend
   - package-ecosystem: "npm"

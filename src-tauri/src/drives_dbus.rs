@@ -1,6 +1,6 @@
+use futures::stream::StreamExt;
 use tauri::{AppHandle, Emitter};
 use zbus::{proxy, Connection};
-use futures::stream::StreamExt;
 
 #[proxy(
     interface = "org.freedesktop.DBus.ObjectManager",
