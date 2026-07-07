@@ -25,19 +25,7 @@ The current 1.1.0 release branch includes dual-pane and tabbed browsing, advance
 
 ---
 
-## Screenshots
 
-These captures highlight several workflows that make SimpleFile more than a basic file browser.
-
-| Configurable Columns | Advanced Rename |
-| --- | --- |
-| ![SimpleFile file browser with configurable columns, folder item counts, and disk-space status](docs/assets/screenshots/simplefile-configurable-columns.png) | ![Advanced Rename modal with recursive batch options and template tokens](docs/assets/screenshots/simplefile-advanced-rename.png) |
-
-| File Comparison | Remote Drives |
-| --- | --- |
-| ![Side-by-side text file comparison showing changed and added lines](docs/assets/screenshots/simplefile-file-compare.png) | ![Remote Drives manager showing cloud providers and pCloud sign-in options](docs/assets/screenshots/simplefile-remote-drives.png) |
-
----
 
 ## Why SimpleFile?
 
