@@ -3,11 +3,9 @@
 ## Before Asking
 
 1. Check the [README](../README.md) — setup instructions and feature overview are there.
-2. For cloud drive, rclone, WinFsp, or mounted-drive questions, check
-   [CLOUD_DRIVES.md](CLOUD_DRIVES.md).
-3. Search [existing issues](https://github.com/conniecombs/SimpleFile-Linux/issues) — your question
+2. Search [existing issues](https://github.com/conniecombs/SimpleFile-Linux/issues) — your question
    may already be answered.
-4. Check [Discussions](https://github.com/conniecombs/SimpleFile-Linux/discussions) — community Q&A
+3. Check [Discussions](https://github.com/conniecombs/SimpleFile-Linux/discussions) — community Q&A
    lives there.
 
 ## Where to Get Help
@@ -29,9 +27,6 @@ A useful bug report includes:
 - The exact steps to reproduce the problem
 - What you expected to happen
 - What actually happened (include error messages or screenshots)
-- For cloud mount issues: whether rclone is installed, whether WinFsp is installed on Windows,
-  the cloud provider, the assigned drive letter or mount point, and whether killing the rclone
-  process changed the behavior
 
 Issues filed without this information will be asked to provide it before being investigated.
 

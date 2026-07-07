@@ -68,26 +68,13 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install tauri-cli --version "^2.0.0" --locked
 ```
 
-### rclone Cloud Backend
-
-Google Drive, OneDrive, Dropbox, pCloud, and S3-compatible providers use rclone
-as the cloud backend. Local development does not require provider OAuth client
-IDs; use Settings -> Cloud Tools to install rclone, or put `rclone` on `PATH`.
-
-Windows rclone mounts also require WinFsp. Use Settings -> Cloud Tools ->
-Install WinFsp Driver when testing mounted cloud drives on Windows. This installs
-the official WinFsp MSI and may require UAC/admin approval. See
-[`CLOUD_DRIVES.md`](CLOUD_DRIVES.md) before changing mount behavior.
-
----
-
 ## Project Structure
 
 ```
 SimpleFile/
 +-- frontend/          # Shipping Svelte/Vite frontend
 |   +-- src/main.ts    # Tauri web entry point
-|   +-- src/lib/       # Typed API, workflows, provider modules, Svelte components
+|   +-- src/lib/       # Typed API, workflows, and Svelte components
 |   +-- src/vanilla-js/
 |   |   +-- runtime/   # Live plain JavaScript imported by Svelte
 |   |   +-- generated-svelte/ # Generated audit artifacts
@@ -97,8 +84,7 @@ SimpleFile/
 |   +-- Cargo.lock     # Committed for reproducible desktop builds
 |   +-- Cargo.toml
 |   +-- src/
-|       +-- cloud/     # Cloud drive plugin trait + registry
-|       +-- *.rs       # Feature modules (fs_ops, archive, search, preview, git, ftp, ...)
+|       +-- *.rs       # Feature modules (fs_ops, archive, search, preview, git, ...)
 |
 +-- scripts/           # Repository checks and smoke tests
 +-- docs/              # Project documentation
@@ -110,135 +96,14 @@ SimpleFile/
 | File | Purpose |
 |------|---------|
 | `src-tauri/src/lib.rs` | All Tauri command registrations |
-| `src-tauri/src/cloud/mod.rs` | `CloudPlugin` trait, plugin registry, `cloud_list_plugins` command |
 | `src-tauri/src/fs_ops.rs` | Core file operations |
 | `frontend/src/main.ts` | Shipping web bootstrap used by Tauri |
 | `frontend/src/App.svelte` | Svelte app root and shell host |
 | `frontend/src/lib/components/` | Svelte-rendered app surfaces and compatibility overlay template |
 | `frontend/src/lib/api.ts` | Typed Tauri command wrappers |
 | `frontend/src/lib/types.ts` | Frontend command/event contracts |
-| `frontend/src/lib/legacyCloudPluginRegistry.ts` | Frontend plugin registry (discovers cloud plugins) |
-| `frontend/src/lib/legacy-cloud-plugins/` | Svelte-side generic provider modules |
-| `frontend/src/lib/legacyCloudManager.ts` | Generic cloud UI (provider-agnostic) |
 | `frontend/src/vanilla-js/runtime/` | Live plain JavaScript runtime helpers |
 | `frontend/src/vanilla-js/generated-svelte/` | Generated Svelte JavaScript/CSS audit artifacts |
-
----
-
-## Adding a Cloud Storage Provider
-
-Cloud drives use a plugin architecture. Adding a new provider requires exactly four steps and
-no changes to any shared infrastructure file.
-
-### 1. Backend: implement `CloudPlugin`
-
-Create `src-tauri/src/cloud/<name>_plugin.rs`:
-
-```rust
-use crate::cloud::CloudPlugin;
-use crate::models::{AuthField, CloudPluginMeta, MountConfig};
-
-pub struct MyPlugin;
-
-impl CloudPlugin for MyPlugin {
-    fn meta(&self) -> CloudPluginMeta {
-        CloudPluginMeta {
-            id:           "myprovider".to_string(),
-            name:         "My Provider".to_string(),
-            icon:         r#"<svg …/>"#.to_string(),
-            auth_type:    "credentials".to_string(),  // or "oauth2"
-            auth_fields:  vec![
-                AuthField { id: "username".to_string(), label: "Username".to_string(),
-                            field_type: "text".to_string(), required: true,
-                            placeholder: None, options: None },
-                // … more fields
-            ],
-            capabilities: vec!["list".to_string(), "download".to_string(), /* … */],
-            description:  "Short description shown in the connect dialog.".to_string(),
-        }
-    }
-
-    fn remote_url(&self, config: &MountConfig) -> String {
-        format!("myprovider://{}", config.user.as_deref().unwrap_or(""))
-    }
-
-    fn uses_rclone(&self) -> bool { true }   // set false if not rclone-backed
-
-    #[cfg(unix)]
-    fn restore_mount(&self, config: &MountConfig, mount_point: &str) -> Result<Option<u32>, String> {
-        crate::myprovider::perform_myprovider_mount(config, mount_point).map(Some)
-    }
-}
-```
-
-Also create `src-tauri/src/myprovider.rs` with the actual Tauri commands
-(`myprovider_auth`, `myprovider_list_folder`, etc.) and register them in `lib.rs`.
-
-### 2. Backend: register the plugin
-
-In `src-tauri/src/cloud/mod.rs`, add two lines:
-
-```rust
-pub mod myprovider_plugin;          // ← new module declaration
-
-pub fn all_plugins() -> Vec<Box<dyn CloudPlugin>> {
-    vec![
-        Box::new(gdrive_plugin::GDrivePlugin),
-        Box::new(pcloud_plugin::PCloudPlugin),
-        Box::new(onedrive_plugin::OneDrivePlugin),
-        Box::new(dropbox_plugin::DropboxPlugin),
-        Box::new(s3_plugin::S3Plugin),
-        Box::new(myprovider_plugin::MyPlugin),  // ← new entry
-    ]
-}
-```
-
-### 3. Frontend: implement the plugin contract
-
-Create `frontend/src/lib/legacy-cloud-plugins/myprovider.ts` exporting a
-default `LegacyCloudPlugin` object with:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | string | Must match the backend plugin id |
-| `name` | string | Display name |
-| `icon` | string | SVG markup or emoji |
-| `authType` | string | `"oauth2"` or `"credentials"` |
-| `renderAuthDialog(container, callbacks)` | function | Renders the connect form |
-| `connect(formData)` | async function | Performs authentication |
-| `refreshAuth(auth)` | async function | Refreshes expired tokens |
-| `listFolder(auth, folderId)` | async function | Returns `Entry[]` |
-| `download(auth, id, size, path, threads, opId, isGoogleDoc?)` | async function | Downloads a file |
-| `upload(auth, parentId, localPath, opId)` | async function | Uploads a file |
-| `createFolder(auth, parentId, name)` | async function | Creates a folder |
-| `delete(auth, id, isFolder)` | async function | Deletes a file or folder |
-| `rename(auth, id, newName, isFolder)` | async function | Renames an item |
-| `mount(auth, name)` | async function | Mounts as a local drive |
-
-Use the migrated providers in `frontend/src/lib/legacy-cloud-plugins`
-(`gdrive.ts`, `onedrive.ts`, `dropbox.ts`, `pcloud.ts`, `s3.ts`) as reference
-implementations.
-
-### 4. Frontend: register the plugin
-
-Add a `*.ts` module under `frontend/src/lib/legacy-cloud-plugins` and
-export a default `LegacyCloudPlugin`. The registry discovers these modules with
-Vite's eager glob loader, so there is no central list to edit.
-
-```ts
-import type { LegacyCloudPlugin } from '../legacyCloudPluginRegistry';
-
-const myProviderPlugin: LegacyCloudPlugin = {
-  id: 'myprovider',
-  name: 'My Provider',
-  // ...
-};
-
-export default myProviderPlugin;
-```
-
-That's it. The provider picker dialog, file browser, auth dialog rendering, token refresh, and
-mount restore all work automatically through the plugin interface.
 
 ---
 
@@ -301,16 +166,12 @@ on every push and PR.
 - Prefer `?` for error propagation over `unwrap()` / `expect()` in production code.
 - All new Tauri commands must validate their path inputs via `validate_existing_path()` or
   `validate_name()` before use.
-- For known rclone/WinFsp cloud mount paths, avoid direct background filesystem probes such as
-  recursive `read_dir`, watcher setup, thumbnail generation, folder-size scans, and Windows
-  volume/free-space probes. Use the rclone-aware helpers documented in `CLOUD_DRIVES.md` and the
-  existing mount utilities.
 - Async commands should use `tokio::spawn` for CPU-heavy work to avoid blocking the async runtime.
 
 ### Frontend
 
 - New UI rendering should usually live under `frontend/src/lib/components/`.
-- New frontend workflow, provider, and typed API modules should live under
+- New frontend workflow and typed API modules should live under
   `frontend/src/lib/`.
 - Live plain JavaScript runtime helpers belong under
   `frontend/src/vanilla-js/runtime/`.
@@ -318,13 +179,9 @@ on every push and PR.
   `frontend/src/vanilla-js/generated-svelte/`.
 - New Tauri command wrappers go in `frontend/src/lib/api.ts`, with command
   contracts in `frontend/src/lib/types.ts`.
-- New cloud providers go in `frontend/src/lib/legacy-cloud-plugins/` -
-  see "Adding a Cloud Storage Provider" above.
 - Do not use `innerHTML` with user-controlled data. Use `textContent` or the `createElement`
   utility (without the `innerHTML` option).
 - Escape all user-visible strings with `escapeHtml()` from `utils.js`.
-- Cloud plugin auth dialogs may use `innerHTML` for their own templated markup, but must
-  escape all user-supplied values before insertion.
 
 ### CSS
 

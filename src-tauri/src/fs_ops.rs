@@ -512,10 +512,6 @@ pub async fn get_entry_info(
     path: String,
     state: tauri::State<'_, Arc<AppState>>,
 ) -> Result<FileEntry, String> {
-    if false {
-        return Err("Detailed file info is unavailable for mounted cloud drives.".to_string());
-    }
-
     let state = state.inner().clone();
     let generation = state.begin_item_count();
 
@@ -784,9 +780,8 @@ pub async fn move_entry(source: String, destination: String) -> Result<String, S
             ));
         }
 
-        // Skip rename for network paths: cross-device rename(2) always fails for
-        // FUSE mounts (FTP, WebDAV, pCloud, GDrive), so avoid the wasted syscall
-        // and go directly to copy+delete.
+        // Keep the fallback path explicit so cross-device rename failures still
+        // copy and remove the source instead of surfacing as a hard failure.
         let network_involved = false;
         if network_involved || fs::rename(&source_path, &final_dest).is_err() {
             if source_path.is_dir() {
@@ -824,9 +819,6 @@ pub async fn move_entry(source: String, destination: String) -> Result<String, S
 
 #[tauri::command]
 pub async fn list_subdirectories(path: String) -> Result<Vec<TreeNode>, String> {
-    if false {
-        return Ok(Vec::new());
-    }
     if crate::archive::split_archive_path(&path)?.is_some() {
         return Ok(Vec::new());
     }
@@ -890,10 +882,6 @@ pub async fn count_folder_items(
     path: String,
     state: tauri::State<'_, Arc<AppState>>,
 ) -> Result<u64, String> {
-    if false {
-        return Err("Folder item count is unavailable for mounted cloud drives.".to_string());
-    }
-
     if let Some(listing) = crate::archive::list_archive_directory(&path)? {
         return Ok(listing.entries.len() as u64);
     }
@@ -923,10 +911,6 @@ pub async fn calculate_folder_size(
     path: String,
     state: tauri::State<'_, Arc<AppState>>,
 ) -> Result<u64, String> {
-    if false {
-        return Err("Folder size is unavailable for mounted cloud drives.".to_string());
-    }
-
     let state = state.inner().clone();
     let generation = state.begin_folder_size();
 

@@ -5,11 +5,8 @@
 > `CHANGELOG.md`, and `UI_BACKEND_REVIEW.md` for the current status.
 >
 > 2026-05-26 status note: terminal/Open With process launching no longer uses
-> `tauri-plugin-shell`, Windows rclone mounts use drive letters instead of
-> app-data folders, and known rclone/WinFsp cloud mounts avoid the background
-> filesystem probes that could hard-freeze the app. The current release metadata
-> is aligned at v1.1.0, and side-by-side text file comparison is available from
-> the file context menu. See `CLOUD_DRIVES.md` for the current cloud mount behavior.
+> `tauri-plugin-shell`. The current release metadata is aligned at v1.1.0, and
+> side-by-side text file comparison is available from the file context menu.
 
 Thorough analysis of the SimpleFile codebase identifying potential bugs, security
 vulnerabilities, performance issues, and architectural concerns.

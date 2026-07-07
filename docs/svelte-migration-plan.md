@@ -54,8 +54,8 @@ it; it must not move, delete, or rewrite source files.
    fallback are under `frontend/src`.
 2. Shell and visible rendering ownership. Done:
    The app shell, toolbar, sidebar, tabs, breadcrumbs, file lists, tree view,
-   preview panes, modals, settings body, context menus, archive surfaces, and
-   remote/cloud browser surfaces are Svelte-rendered.
+   preview panes, modals, settings body, context menus, and archive surfaces are
+   Svelte-rendered.
 3. File navigation workflow retirement. Done:
    File navigation behavior is routed through focused workflow modules under
    `frontend/src/lib`, while Svelte components emit stable interaction events.
@@ -63,11 +63,9 @@ it; it must not move, delete, or rewrite source files.
    Generic modal bodies, settings panels, command/help/about surfaces, archive
    dialogs, properties/open-with/tag flows, and local command actions are split
    from the old monolithic frontend controller.
-5. Search, transfer, and remote/cloud workflow retirement. Done:
-   Search, transfer queue actions, dual-pane transfer helpers, FTP/WebDav
-   browsing, network mounts, provider plugins, cloud sessions, provider picker
-   rendering, and cloud-to-cloud transfers live behind Svelte-side workflow and
-   provider boundaries.
+5. Search and transfer workflow retirement. Done:
+   Search, transfer queue actions, and dual-pane transfer helpers live behind
+   Svelte-side workflow boundaries.
 6. Legacy event and DOM bridge removal. Done:
    Svelte surfaces emit stable custom events for file-list, tree, tab,
    breadcrumb, toolbar, search, drag/drop, and remote-browser interactions.

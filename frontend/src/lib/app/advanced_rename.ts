@@ -90,13 +90,10 @@ import { onMount } from 'svelte';
     CleanupResult,
     ConflictAction,
     FileEntry,
-    MountInfo,
     NativeFileDropEventPayload,
     OperationId,
     PathString,
     ProgressUpdate,
-    RcloneEntry,
-    RcloneRemote,
     RenameRequest,
     SearchOptions,
     SmartFolder,
@@ -542,4 +539,3 @@ import { setElementText, setOverlayVisible, runWithProgress, refreshCurrentDirec
       showError(error);
     }
   }
-

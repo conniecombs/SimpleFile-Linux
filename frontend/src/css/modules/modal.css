@@ -31,8 +31,8 @@
     pointer-events: none;
 }
 
-/* Generic prompts (new folder, rename, confirmation, progress) can be opened
-   from inside larger overlays like Remote Drives. Keep them on top. */
+/* Generic prompts (new folder, rename, confirmation, progress) stay above
+   other overlays. */
 #modal-overlay,
 #progress-overlay {
     z-index: 12000;

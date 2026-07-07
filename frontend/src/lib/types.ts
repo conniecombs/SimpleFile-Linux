@@ -9,11 +9,8 @@ export type ClipboardAction = 'copy' | 'cut';
 export type ViewMode = 'list' | 'grid';
 export type ThemeName = 'dark' | 'light' | string;
 export type ArchiveFormat = 'zip' | 'tar' | 'tar.gz' | 'tgz' | 'rar';
-export type RemoteDirection = 'upload' | 'download' | 'local' | 'cloud';
 export type TransferStatus = 'queued' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 export type ProgressStatus = 'running' | 'completed' | 'error' | 'cancelled' | (string & {});
-export type CloudAuthType = 'oauth2' | 'credentials' | (string & {});
-export type AuthFieldType = 'text' | 'password' | 'select' | (string & {});
 
 export type ColumnId = 'size' | 'items' | 'date' | 'type';
 
@@ -139,79 +136,6 @@ export interface ImageMetadata {
   width: number;
   height: number;
   exif: Array<[string, string]>;
-}
-
-export interface MountInfo {
-  id: string;
-  mount_type: string;
-  remote: string;
-  mount_point: PathString;
-  name: string;
-}
-
-export interface MountConfig {
-  id: string;
-  mount_type: string;
-  name: string;
-  mount_point?: PathString;
-  host?: string;
-  port?: number;
-  user?: string;
-  pass?: string;
-  url?: string;
-  client_id?: string;
-  client_secret?: string;
-  token_json?: string;
-}
-
-
-
-export interface AuthField {
-  id: string;
-  label: string;
-  field_type: AuthFieldType;
-  required: boolean;
-  placeholder?: string;
-  options?: SelectOption[];
-}
-
-export interface SelectOption {
-  value: string;
-  label: string;
-}
-
-export interface CloudPluginMeta {
-  id: string;
-  name: string;
-  icon: string;
-  auth_type: CloudAuthType;
-  auth_fields: AuthField[];
-  capabilities: string[];
-  description: string;
-}
-
-export interface RcloneRemote {
-  provider: string;
-  remote_name: string;
-  display_name: string;
-  root_path: string;
-}
-
-export interface RcloneRemoteInfo {
-  remote_name: string;
-  provider: string;
-  display_name: string;
-}
-
-export interface RcloneEntry {
-  id: string;
-  name: string;
-  path: PathString;
-  is_folder: boolean;
-  size: number;
-  modified: string;
-  mime_type?: string;
-  is_google_doc: boolean;
 }
 
 export interface ArchiveEntry {
@@ -379,10 +303,6 @@ export interface TauriCommandMap {
   install_rar: CommandContract<NoArgs, string>;
   get_startup_path: CommandContract<NoArgs, Nullable<string>>;
   set_default_file_manager: CommandContract<NoArgs, void>;
-  check_rclone_installed: CommandContract<NoArgs, boolean>;
-  install_rclone: CommandContract<NoArgs, string>;
-  check_winfsp_installed: CommandContract<NoArgs, boolean>;
-  install_winfsp: CommandContract<NoArgs, string>;
   get_db_setting: CommandContract<{ key: string }, string | null>;
   set_db_setting: CommandContract<{ key: string; value: string }, void>;
   get_xdg_dirs: CommandContract<Record<string, never>, Record<string, string | null>>;
@@ -390,17 +310,6 @@ export interface TauriCommandMap {
   git_push: CommandContract<{ path?: string }, string | void>;
   github_request_device_code: CommandContract<{ clientId?: string }, any>;
   github_poll_token: CommandContract<{ clientId?: string; deviceCode: string }, string>;
-  rclone_create_remote: CommandContract<{ provider: string; displayName: string; options: JsonValue }, RcloneRemote>;
-  rclone_list_remotes: CommandContract<NoArgs, RcloneRemoteInfo[]>;
-  rclone_list_folder: CommandContract<{ remoteName: string; path: string }, RcloneEntry[]>;
-  rclone_create_folder: CommandContract<{ remoteName: string; parentPath: string; name: string }, string>;
-  rclone_delete: CommandContract<{ remoteName: string; path: string; isFolder: boolean }, void>;
-  rclone_rename: CommandContract<{ remoteName: string; path: string; newName: string }, void>;
-  rclone_download: CommandContract<{ remoteName: string; path: string; localPath: PathString; operationId: Nullable<OperationId> }, void>;
-  rclone_upload: CommandContract<{ remoteName: string; parentPath: string; localPath: PathString; operationId: Nullable<OperationId> }, void>;
-  rclone_copy_between_remotes: CommandContract<{ sourceRemoteName: string; sourcePath: string; destinationRemoteName: string; destinationParentPath: string; destinationName: Nullable<string>; isFolder: boolean; operationId: Nullable<OperationId> }, void>;
-  rclone_move_between_remotes: CommandContract<{ sourceRemoteName: string; sourcePath: string; destinationRemoteName: string; destinationParentPath: string; destinationName: Nullable<string>; isFolder: boolean; operationId: Nullable<OperationId> }, void>;
-  rclone_mount_remote: CommandContract<{ remoteName: string; name: string; remotePath: string; provider: string }, MountInfo>;
   open_terminal: CommandContract<{ path: PathString }, void>;
   open_powershell_admin: CommandContract<{ path: PathString }, void>;
   search_files: CommandContract<{ options: SearchOptions }, SearchResult[]>;

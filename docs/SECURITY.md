@@ -42,7 +42,7 @@ The following are in scope:
 - Shell injection via file or directory names
 - XSS in the frontend via unsanitized file/path data
 - Privilege escalation via the Tauri command surface
-- Insecure deserialization of data from the filesystem or network (FTP, cloud storage)
+- Insecure deserialization of data from the filesystem or network
 - Unsafe installer, driver, or process-launch behavior
 
 The following are out of scope:
@@ -59,16 +59,6 @@ The following are out of scope:
 - The app requires filesystem access to function. It does not sandbox file operations beyond
   Tauri's permission model.
 - FTP connections are unencrypted unless the server uses FTPS. Do not use FTP over untrusted networks.
-- rclone-backed cloud sign-in opens the provider authorization page in the system browser.
-  SimpleFile does not collect Google, Microsoft, Dropbox, or pCloud passwords or MFA codes.
-- Cloud storage credentials and OAuth tokens are stored in the app's local data directory,
-  SimpleFile's local rclone config, or provider-specific mount configuration files.
-- On Windows, WinFsp is required for rclone cloud drive mounts. The **Install WinFsp Driver**
-  button downloads the official WinFsp MSI and may trigger a UAC/admin prompt because WinFsp is a
-  filesystem driver/runtime.
-- Known rclone/WinFsp cloud mounts are intentionally not watched, thumbnailed, previewed, recursively
-  sized, or probed for Windows volume/free-space data in the background. This reduces denial-of-service
-  style freezes caused by unhealthy mount processes.
 - Terminal and Open With flows use scoped backend process-launch commands. Open With blocks shells
   and scripting runtimes and only allows executable targets from trusted install locations.
 - Automatic updater artifacts are disabled until the updater public key, endpoint, and signing

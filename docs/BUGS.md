@@ -12,9 +12,7 @@ in `SECURITY.md`; new advisories still fail the audit job.
 
 **Maintenance update - 2026-05-24:** The latest hardening pass added a frontend/backend
 invoke consistency check, removed `tauri-plugin-shell`, tightened terminal and Open With
-process launching, added cancellable disk cleanup, added WinFsp installer/status support, moved
-Windows rclone mounts to drive letters, and added safeguards so mounted rclone/WinFsp cloud drives
-are listed through rclone instead of background WinFsp filesystem probes.
+process launching, added cancellable disk cleanup, and tightened filesystem probe behavior.
 
 ---
 
@@ -33,7 +31,7 @@ The following issues from the prior analysis have been **resolved**:
 | 11 | Updater placeholder values | **Fixed** — explicit placeholder config allows startup; production updater artifacts remain disabled |
 | 13 | Non-unique operation ID | **Fixed** — atomic counter used |
 | 17 | has_children always true | **Fixed** — now checks for subdirectories |
-| 23 | list_directory doesn't validate paths | **Fixed** — validates readable paths while preserving rclone/WinFsp mount junctions |
+| 23 | list_directory doesn't validate paths | **Fixed** — validates readable paths without forcing canonicalization |
 
 The following issues from the prior analysis **remain unfixed**:
 
@@ -424,9 +422,5 @@ Additional 2026-05-24 reliability fixes:
 
 | Area | Fix Applied |
 |------|-------------|
-| rclone/WinFsp cloud mounts | Known mounted cloud folders are listed through `rclone lsjson` instead of direct `read_dir` calls |
-| rclone/WinFsp freezes | Watchers, automatic previews, thumbnails, folder-size scans, detailed properties, drive-space probes, and root liveness probes are skipped for known cloud mounts |
-| Windows cloud mount location | rclone mounts use persisted drive letters instead of app-data folders |
-| WinFsp installation | Settings exposes a separate WinFsp driver installer/status check with explanatory text |
 | Disk cleanup | Long scans emit progress, can be cancelled, and report large files plus duplicate SHA-256 groups |
 | Tauri command wiring | `npm run check:invokes` detects frontend invokes without backend handlers |

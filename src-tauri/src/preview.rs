@@ -35,17 +35,6 @@ pub async fn open_external_url(url: String, app: AppHandle) -> Result<(), String
 
 #[tauri::command]
 pub fn read_file_preview(path: String, max_size: Option<u64>) -> Result<FilePreview, String> {
-    if false {
-        return Ok(FilePreview {
-            file_type: "unsupported".to_string(),
-            content: None,
-            mime_type: "Cloud drive previews are disabled to keep mounted drives responsive."
-                .to_string(),
-            size: 0,
-            encoding: None,
-        });
-    }
-
     let path_buf = resolve_readable_path(&path)?;
     if path_buf.is_dir() {
         return Err("Cannot preview a directory".to_string());
@@ -173,10 +162,6 @@ pub fn read_file_preview(path: String, max_size: Option<u64>) -> Result<FilePrev
 #[tauri::command]
 pub fn generate_thumbnail(path: String, size: Option<u32>) -> Result<String, String> {
     use base64::{engine::general_purpose, Engine as _};
-
-    if false {
-        return Err("Thumbnails are disabled for mounted cloud drives.".to_string());
-    }
 
     let path_buf = resolve_readable_path(&path)?;
     let extension = path_buf

@@ -6,7 +6,6 @@ import type {
   ArchiveInfo,
   Checksums,
   CleanupResult,
-  CloudPluginMeta,
   ConflictAction,
   DirectoryListing,
   DriveInfo,
@@ -15,19 +14,13 @@ import type {
   FileComparison,
   FileEntry,
   FilePreview,
-  FtpCredentials,
   GitStatus,
   ImageMetadata,
-  JsonValue,
-  MountInfo,
   NativeFileDropEventPayload,
   Nullable,
   OperationId,
   PathString,
   ProgressUpdate,
-  RcloneEntry,
-  RcloneRemote,
-  RcloneRemoteInfo,
   RenameRequest,
   SearchOptions,
   SearchResult,
@@ -37,7 +30,6 @@ import type {
   TransferResult,
   UpdateChunkPayload,
   UpdateInfo,
-  WebdavCredentials,
   SmartFolder,
   TauriCommandMap
 } from './types';
@@ -295,10 +287,6 @@ export function githubPollToken(clientId: string, deviceCode: string): Promise<s
   return invokeCommand('github_poll_token', { clientId, deviceCode });
 }
 
-// ============================================================================
-// Cloud Providers
-// ============================================================================
-
 
 
 
@@ -375,12 +363,6 @@ export function getGitStatus(path: PathString): Promise<GitStatus> {
 
 
 
-
-export interface GDriveStartAuthOptions {
-  clientId?: string;
-  clientSecret?: string;
-  loginHint?: string;
-}
 
 
 

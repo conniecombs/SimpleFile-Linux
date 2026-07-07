@@ -92,13 +92,10 @@ import { onMount } from 'svelte';
     CleanupResult,
     ConflictAction,
     FileEntry,
-    MountInfo,
     NativeFileDropEventPayload,
     OperationId,
     PathString,
     ProgressUpdate,
-    RcloneEntry,
-    RcloneRemote,
     RenameRequest,
     SearchOptions,
     SmartFolder,
@@ -529,4 +526,3 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     const input = document.getElementById('search-input') as HTMLInputElement | null;
     if (input) input.value = '';
   }
-

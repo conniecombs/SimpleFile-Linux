@@ -90,13 +90,10 @@ import { onMount } from 'svelte';
     CleanupResult,
     ConflictAction,
     FileEntry,
-    MountInfo,
     NativeFileDropEventPayload,
     OperationId,
     PathString,
     ProgressUpdate,
-    RcloneEntry,
-    RcloneRemote,
     RenameRequest,
     SearchOptions,
     SmartFolder,
@@ -266,4 +263,3 @@ const archiveExtensions = new Set(['zip', 'tar', 'tgz', 'gz', 'rar']);
     });
     await dialogPromise;
   }
-

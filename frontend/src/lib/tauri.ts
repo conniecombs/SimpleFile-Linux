@@ -5,17 +5,12 @@ import type {
   CommandResult,
   ArchiveInfo,
   Checksums,
-  CloudPluginMeta,
   CleanupResult,
   DirectoryListing,
   DriveInfo,
   FileEntry,
   FilePreview,
   ImageMetadata,
-  MountInfo,
-  RcloneEntry,
-  RcloneRemote,
-  RcloneRemoteInfo,
   SearchOptions,
   SearchResult,
   SmartFolder,
@@ -27,19 +22,12 @@ const DEV_HOME_PATH = 'C:\\Users\\Admin';
 const DEV_ROOT_PATH = 'C:\\';
 
 let devFileSystemReady = false;
-let devRemoteCounter = 0;
-let devMountCounter = 0;
 let devTagCounter = 0;
 const devDirectories = new Map<string, FileEntry[]>();
 const devArchives = new Map<string, ArchiveInfo>();
 const devSmartFolders = new Map<string, SmartFolder>();
 const devTags = new Map<number, DevTag>();
 const devPathTags = new Map<string, number[]>();
-const devCloudRemotes = new Map<string, {
-  remote: RcloneRemote;
-  folders: Map<string, RcloneEntry[]>;
-}>();
-const devMounts = new Map<string, MountInfo>();
 
 type DevTag = {
   color: string;
@@ -400,257 +388,6 @@ function devArchiveInfo(path: string): ArchiveInfo {
   };
 }
 
-function normalizeRemotePath(path: unknown) {
-  return String(path || '')
-    .replace(/\\/g, '/')
-    .replace(/^\/+|\/+$/g, '');
-}
-
-function remoteFolderKey(path: unknown) {
-  return normalizeRemotePath(path).toLowerCase();
-}
-
-function remotePathJoin(parent: unknown, name: string) {
-  const cleanParent = normalizeRemotePath(parent);
-  const cleanName = name.trim().replace(/^\/+|\/+$/g, '');
-  return cleanParent ? `${cleanParent}/${cleanName}` : cleanName;
-}
-
-function remoteParentPath(path: unknown) {
-  const clean = normalizeRemotePath(path);
-  const slash = clean.lastIndexOf('/');
-  return slash > 0 ? clean.slice(0, slash) : '';
-}
-
-function remoteEntry(name: string, path: string, isFolder = false, size = 0): RcloneEntry {
-  return {
-    id: path,
-    is_folder: isFolder,
-    is_google_doc: false,
-    modified: '2026-01-01T00:00:00.000Z',
-    name,
-    path,
-    size,
-  };
-}
-
-function providerLabel(provider: string) {
-  switch (provider) {
-    case 'gdrive':
-      return 'Google Drive';
-    case 'onedrive':
-      return 'OneDrive';
-    case 'dropbox':
-      return 'Dropbox';
-    case 'pcloud':
-      return 'pCloud';
-    case 's3':
-      return 'S3 Storage';
-    default:
-      return provider || 'Remote';
-  }
-}
-
-function ensureDevRemote(provider: string, displayName = '', options: Record<string, unknown> = {}): RcloneRemote {
-  const cleanProvider = provider || 'remote';
-  const cleanDisplayName = displayName.trim() || providerLabel(cleanProvider);
-  const slug = cleanDisplayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || cleanProvider;
-  const remoteName = `${cleanProvider}-${slug}-${++devRemoteCounter}`;
-  const rootPath = normalizeRemotePath(options.bucket) || '';
-  const remote: RcloneRemote = {
-    display_name: cleanDisplayName,
-    provider: cleanProvider,
-    remote_name: remoteName,
-    root_path: rootPath,
-  };
-
-  const folders = new Map<string, RcloneEntry[]>();
-  folders.set(remoteFolderKey(rootPath), [
-    remoteEntry('Projects', remotePathJoin(rootPath, 'Projects'), true),
-    remoteEntry(`${providerLabel(cleanProvider)} sample.txt`, remotePathJoin(rootPath, `${providerLabel(cleanProvider)} sample.txt`), false, 4096),
-  ]);
-  folders.set(remoteFolderKey(remotePathJoin(rootPath, 'Projects')), [
-    remoteEntry('Roadmap.md', remotePathJoin(remotePathJoin(rootPath, 'Projects'), 'Roadmap.md'), false, 2048),
-  ]);
-
-  devCloudRemotes.set(remoteName, { folders, remote });
-  return remote;
-}
-
-function getDevRemote(remoteName: string) {
-  const remote = devCloudRemotes.get(remoteName);
-  if (!remote) throw new Error(`Remote does not exist: ${remoteName}`);
-  return remote;
-}
-
-function listDevRemoteFolder(remoteName: string, path: string) {
-  const remote = getDevRemote(remoteName);
-  return (remote.folders.get(remoteFolderKey(path)) ?? []).map((entry) => ({ ...entry }));
-}
-
-function createDevRemoteFolder(remoteName: string, parentPath: string, name: string) {
-  const cleanName = validateDevName(name);
-  const remote = getDevRemote(remoteName);
-  const parentKey = remoteFolderKey(parentPath);
-  const entries = remote.folders.get(parentKey) ?? [];
-  if (entries.some((entry) => entry.name.toLowerCase() === cleanName.toLowerCase())) {
-    throw new Error(`Remote folder already contains ${cleanName}`);
-  }
-  const path = remotePathJoin(parentPath, cleanName);
-  entries.push(remoteEntry(cleanName, path, true));
-  remote.folders.set(parentKey, entries);
-  remote.folders.set(remoteFolderKey(path), []);
-  return path;
-}
-
-function findDevRemoteEntry(remoteName: string, path: string) {
-  const remote = getDevRemote(remoteName);
-  const cleanPath = normalizeRemotePath(path);
-  for (const [folderPath, entries] of remote.folders.entries()) {
-    const entry = entries.find((candidate) => remoteFolderKey(candidate.path) === remoteFolderKey(cleanPath));
-    if (entry) return { entry, entries, folderPath, remote };
-  }
-  throw new Error(`Remote path does not exist: ${cleanPath}`);
-}
-
-function deleteDevRemoteEntry(remoteName: string, path: string) {
-  const { entry, entries, remote } = findDevRemoteEntry(remoteName, path);
-  const nextEntries = entries.filter((candidate) => candidate !== entry);
-  remote.folders.set(remoteFolderKey(remoteParentPath(entry.path)), nextEntries);
-  if (entry.is_folder) {
-    const prefix = `${remoteFolderKey(entry.path)}/`;
-    for (const key of [...remote.folders.keys()]) {
-      if (key === remoteFolderKey(entry.path) || key.startsWith(prefix)) {
-        remote.folders.delete(key);
-      }
-    }
-  }
-}
-
-function renameDevRemoteEntry(remoteName: string, path: string, newName: string) {
-  const cleanName = validateDevName(newName);
-  const { entry, entries, remote } = findDevRemoteEntry(remoteName, path);
-  const parent = remoteParentPath(entry.path);
-  if (entries.some((candidate) => candidate !== entry && candidate.name.toLowerCase() === cleanName.toLowerCase())) {
-    throw new Error(`Remote folder already contains ${cleanName}`);
-  }
-
-  const oldPath = entry.path;
-  const newPath = remotePathJoin(parent, cleanName);
-  entry.name = cleanName;
-  entry.path = newPath;
-  entry.id = newPath;
-
-  if (entry.is_folder) {
-    const oldKey = remoteFolderKey(oldPath);
-    const oldPrefix = `${oldKey}/`;
-    for (const [key, children] of [...remote.folders.entries()]) {
-      if (key !== oldKey && !key.startsWith(oldPrefix)) continue;
-      remote.folders.delete(key);
-      const suffix = key.slice(oldKey.length);
-      const nextFolderPath = `${newPath}${suffix}`;
-      for (const child of children) {
-        if (remoteFolderKey(child.path).startsWith(oldPrefix)) {
-          child.path = `${newPath}/${child.path.slice(oldPath.length + 1)}`;
-          child.id = child.path;
-        }
-      }
-      remote.folders.set(remoteFolderKey(nextFolderPath), children);
-    }
-  }
-}
-
-function copyDevRemoteEntry(
-  sourceRemoteName: string,
-  sourcePath: string,
-  destinationRemoteName: string,
-  destinationParentPath: string,
-  destinationName?: string | null,
-  move = false,
-) {
-  const { entry } = findDevRemoteEntry(sourceRemoteName, sourcePath);
-  const destinationRemote = getDevRemote(destinationRemoteName);
-  const parentKey = remoteFolderKey(destinationParentPath);
-  const entries = destinationRemote.folders.get(parentKey) ?? [];
-  const cleanName = validateDevName(destinationName || entry.name);
-  const path = remotePathJoin(destinationParentPath, cleanName);
-  if (entries.some((candidate) => candidate.name.toLowerCase() === cleanName.toLowerCase())) {
-    throw new Error(`Destination already contains ${cleanName}`);
-  }
-
-  entries.push(remoteEntry(cleanName, path, entry.is_folder, entry.size));
-  destinationRemote.folders.set(parentKey, entries);
-  if (entry.is_folder) destinationRemote.folders.set(remoteFolderKey(path), []);
-  if (move) deleteDevRemoteEntry(sourceRemoteName, sourcePath);
-}
-
-function createDevMount(name: string, mountType: string, remote: string): MountInfo {
-  const cleanName = validateDevName(name || remote || mountType);
-  const mountPoint = devJoinPath('C:\\Temp', `SimpleFile-${cleanName.replace(/\s+/g, '-')}-${++devMountCounter}`);
-  const mount: MountInfo = {
-    id: `mount-${devMountCounter}`,
-    mount_point: mountPoint,
-    mount_type: mountType,
-    name: cleanName,
-    remote,
-  };
-  devMounts.set(mount.mount_point, mount);
-  setDevDirectory(mountPoint, [
-    devEntry('Mounted Sample.txt', devJoinPath(mountPoint, 'Mounted Sample.txt'), false),
-  ]);
-  return mount;
-}
-
-function devCloudPluginMeta(): CloudPluginMeta[] {
-  return [
-    {
-      auth_fields: [],
-      auth_type: 'oauth',
-      capabilities: ['list', 'download', 'upload', 'create_folder', 'rename', 'delete', 'mount'],
-      description: 'Google Drive through rclone',
-      icon: 'drive',
-      id: 'gdrive',
-      name: 'Google Drive',
-    },
-    {
-      auth_fields: [],
-      auth_type: 'oauth',
-      capabilities: ['list', 'download', 'upload', 'create_folder', 'rename', 'delete', 'mount'],
-      description: 'Dropbox through rclone',
-      icon: 'dropbox',
-      id: 'dropbox',
-      name: 'Dropbox',
-    },
-    {
-      auth_fields: [],
-      auth_type: 'oauth',
-      capabilities: ['list', 'download', 'upload', 'create_folder', 'rename', 'delete', 'mount'],
-      description: 'OneDrive through rclone',
-      icon: 'onedrive',
-      id: 'onedrive',
-      name: 'OneDrive',
-    },
-    {
-      auth_fields: [],
-      auth_type: 'oauth',
-      capabilities: ['list', 'download', 'upload', 'create_folder', 'rename', 'delete', 'mount'],
-      description: 'pCloud through rclone',
-      icon: 'pcloud',
-      id: 'pcloud',
-      name: 'pCloud',
-    },
-    {
-      auth_fields: [],
-      auth_type: 'api_key',
-      capabilities: ['list', 'download', 'upload', 'create_folder', 'rename', 'delete', 'mount'],
-      description: 'S3-compatible storage through rclone',
-      icon: 's3',
-      id: 's3',
-      name: 'S3 Compatible',
-    },
-  ];
-}
-
 function ensureDevFileSystem() {
   if (devFileSystemReady) return;
   devFileSystemReady = true;
@@ -705,13 +442,7 @@ function devDrives(): DriveInfo[] {
     name: 'Local Disk (C:)',
     path: 'C:\\',
     total_space: 0,
-  }, ...[...devMounts.values()].map((mount) => ({
-    drive_type: mount.mount_type,
-    free_space: 0,
-    name: mount.name,
-    path: mount.mount_point,
-    total_space: 0,
-  }))];
+  }];
 }
 
 function devFilePreview(path: string, maxSize?: number): FilePreview {
@@ -1265,81 +996,9 @@ async function invokeDevCommand<Name extends TauriCommandName>(
       return undefined as CommandResult<Name>;
 
     case 'check_rar_installed':
-    case 'check_rclone_installed':
-    case 'check_winfsp_installed':
       return false as CommandResult<Name>;
     case 'install_rar':
       return 'RAR installer is unavailable in browser dev mode.' as CommandResult<Name>;
-    case 'install_rclone':
-      return 'rclone installer is unavailable in browser dev mode.' as CommandResult<Name>;
-    case 'install_winfsp':
-      return 'WinFsp installer is unavailable in browser dev mode.' as CommandResult<Name>;
-    case 'rclone_create_remote': {
-      const { provider, displayName, options } = args as { provider: string; displayName?: string; options?: Record<string, unknown> };
-      return ensureDevRemote(provider, displayName, options ?? {}) as CommandResult<Name>;
-    }
-    case 'rclone_list_remotes':
-      return [...devCloudRemotes.values()].map(({ remote }) => ({
-        display_name: remote.display_name,
-        provider: remote.provider,
-        remote_name: remote.remote_name,
-      } satisfies RcloneRemoteInfo)) as CommandResult<Name>;
-    case 'rclone_list_folder': {
-      const { remoteName, path } = args as { remoteName: string; path: string };
-      return listDevRemoteFolder(remoteName, path) as CommandResult<Name>;
-    }
-    case 'rclone_create_folder': {
-      const { remoteName, parentPath, name } = args as { remoteName: string; parentPath: string; name: string };
-      return createDevRemoteFolder(remoteName, parentPath, name) as CommandResult<Name>;
-    }
-    case 'rclone_delete': {
-      const { remoteName, path } = args as { remoteName: string; path: string };
-      deleteDevRemoteEntry(remoteName, path);
-      return undefined as CommandResult<Name>;
-    }
-    case 'rclone_rename': {
-      const { remoteName, path, newName } = args as { remoteName: string; path: string; newName: string };
-      renameDevRemoteEntry(remoteName, path, newName);
-      return undefined as CommandResult<Name>;
-    }
-    case 'rclone_download':
-      return undefined as CommandResult<Name>;
-    case 'rclone_upload': {
-      const { remoteName, parentPath, localPath } = args as { remoteName: string; parentPath: string; localPath: string };
-      const remote = getDevRemote(remoteName);
-      const parentKey = remoteFolderKey(parentPath);
-      const entries = remote.folders.get(parentKey) ?? [];
-      const name = devBasename(localPath);
-      entries.push(remoteEntry(name, remotePathJoin(parentPath, name), false, 1024));
-      remote.folders.set(parentKey, entries);
-      return undefined as CommandResult<Name>;
-    }
-    case 'rclone_copy_between_remotes': {
-      const { sourceRemoteName, sourcePath, destinationRemoteName, destinationParentPath, destinationName } = args as {
-        sourceRemoteName: string;
-        sourcePath: string;
-        destinationRemoteName: string;
-        destinationParentPath: string;
-        destinationName?: string | null;
-      };
-      copyDevRemoteEntry(sourceRemoteName, sourcePath, destinationRemoteName, destinationParentPath, destinationName, false);
-      return undefined as CommandResult<Name>;
-    }
-    case 'rclone_move_between_remotes': {
-      const { sourceRemoteName, sourcePath, destinationRemoteName, destinationParentPath, destinationName } = args as {
-        sourceRemoteName: string;
-        sourcePath: string;
-        destinationRemoteName: string;
-        destinationParentPath: string;
-        destinationName?: string | null;
-      };
-      copyDevRemoteEntry(sourceRemoteName, sourcePath, destinationRemoteName, destinationParentPath, destinationName, true);
-      return undefined as CommandResult<Name>;
-    }
-    case 'rclone_mount_remote': {
-      const { remoteName, name, provider } = args as { remoteName: string; name: string; provider: string };
-      return createDevMount(name || getDevRemote(remoteName).remote.display_name, provider || 'rclone', remoteName) as CommandResult<Name>;
-    }
 
     case 'get_app_version':
       return 'dev' as CommandResult<Name>;

@@ -21,7 +21,6 @@ mod dummy_commands;
 mod preview;
 mod progress;
 mod rar_installer;
-mod rclone_installer;
 
 mod search;
 mod smart_folders;
@@ -209,23 +208,8 @@ pub fn run() {
             tags::set_tags_for_path,
             tags::get_files_with_tag,
             tags::get_all_file_tags,
-            rclone_installer::check_rclone_installed,
-            rclone_installer::check_winfsp_installed,
-            rclone_installer::install_rclone,
-            rclone_installer::install_winfsp,
             dummy_commands::github_poll_token,
             dummy_commands::github_request_device_code,
-            dummy_commands::rclone_copy_between_remotes,
-            dummy_commands::rclone_create_folder,
-            dummy_commands::rclone_create_remote,
-            dummy_commands::rclone_delete,
-            dummy_commands::rclone_download,
-            dummy_commands::rclone_list_folder,
-            dummy_commands::rclone_list_remotes,
-            dummy_commands::rclone_mount_remote,
-            dummy_commands::rclone_move_between_remotes,
-            dummy_commands::rclone_rename,
-            dummy_commands::rclone_upload,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

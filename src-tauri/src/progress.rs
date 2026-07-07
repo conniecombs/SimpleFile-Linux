@@ -527,33 +527,6 @@ fn copy_item_with_progress(
     Ok(())
 }
 
-fn try_rclone_mounted_transfer(
-    _action: &str,
-    plan: &TransferPlan,
-    ctx: &ProgressContext,
-    completed_bytes: &mut u64,
-) -> Result<bool, String> {
-    let source_meta = fs::symlink_metadata(&plan.source_path)
-        .map_err(|e| format!("Failed to stat source: {e}"))?;
-    if source_meta.file_type().is_symlink() {
-        return Ok(false);
-    }
-
-    let handled = false;
-    if handled {
-        let total = ctx.total_bytes.fetch_add(1, Ordering::Relaxed) + 1;
-        *completed_bytes += 1;
-        ctx.emit_with_total(
-            *completed_bytes,
-            total,
-            plan.source_path.to_string_lossy().to_string(),
-            "running",
-            None,
-        );
-    }
-    Ok(handled)
-}
-
 fn ensure_destination_available(plan: &TransferPlan) -> Result<(), String> {
     if !plan.replace_existing && path_exists_no_follow(&plan.final_dest) {
         return Err(conflict_for_existing_destination(&plan.final_dest));
@@ -567,10 +540,6 @@ fn copy_plan_with_progress(
     completed_bytes: &mut u64,
 ) -> Result<(), String> {
     ensure_destination_available(plan)?;
-
-    if try_rclone_mounted_transfer("copy", plan, ctx, completed_bytes)? {
-        return Ok(());
-    }
 
     if plan.replace_existing && path_exists_no_follow(&plan.final_dest) {
         remove_existing_destination(&plan.final_dest)?;
@@ -597,10 +566,6 @@ fn move_plan_with_progress(
     let network = false;
 
     ensure_destination_available(plan)?;
-
-    if try_rclone_mounted_transfer("move", plan, ctx, completed_bytes)? {
-        return Ok(());
-    }
 
     if plan.replace_existing && path_exists_no_follow(&plan.final_dest) {
         remove_existing_destination(&plan.final_dest)?;
