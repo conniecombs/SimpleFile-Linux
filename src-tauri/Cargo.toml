@@ -47,7 +47,7 @@ sha2 = "0.11"
 # small crate has no heavy dependencies and supports common image formats.
 exif = { package = "kamadak-exif", version = "0.6" }
 tauri-plugin-dialog = "2"
-rusqlite = { version = "0.31.0", features = ["bundled"] }
+rusqlite = { version = "0.40.1", features = ["bundled"] }
 reqwest = { version = "0.13.4", default-features = false, features = ["rustls"] }
 tauri-plugin-single-instance = "2.4.2"
 zbus = "5.16.0"
