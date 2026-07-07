@@ -65,7 +65,8 @@ You can also trigger a release manually:
 
 1. Go to Actions → Release.
 2. Click **Run workflow**.
-3. Enter the version, for example `1.0.0` or `v1.0.0`.
+3. Leave the version blank to use the checked-in manifest version, or enter an
+   explicit version such as `1.0.0` or `v1.0.0`.
 4. Choose whether to create a draft release.
 
 If `draft` is set to `false`, the workflow publishes the release after all platform builds succeed.
