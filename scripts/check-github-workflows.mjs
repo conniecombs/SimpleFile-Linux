@@ -29,10 +29,14 @@ function requireRegex(source, file, pattern, label) {
 
 const ciPath = '.github/workflows/ci.yml';
 const releasePath = '.github/workflows/release.yml';
+const flatpakPath = '.github/workflows/flatpak.yml';
+const dependabotAutomergePath = '.github/workflows/dependabot-automerge.yml';
 const dependabotPath = '.github/dependabot.yml';
 
 const ciWorkflow = readText(ciPath);
 const releaseWorkflow = readText(releasePath);
+const flatpakWorkflow = readText(flatpakPath);
+const dependabotAutomergeWorkflow = readText(dependabotAutomergePath);
 const dependabot = readText(dependabotPath);
 
 const ciSnippets = [
@@ -41,7 +45,7 @@ const ciSnippets = [
     'permissions:',
     'contents: read',
     'pull-requests: read',
-    'uses: actions/checkout@v6',
+    'uses: actions/checkout@v7',
     'uses: dtolnay/rust-toolchain@stable',
     'components: rustfmt, clippy',
     'uses: actions/setup-node@v6',
@@ -72,6 +76,7 @@ const releaseSnippets = [
     'Version must look like v1.0.0 or v1.0.0-beta.1',
     'tauri.conf.json',
     'Cargo.toml',
+    'uses: actions/checkout@v7',
     'components: rustfmt, clippy',
     'uses: actions/setup-node@v6',
     'node-version: 24',
@@ -100,6 +105,39 @@ requireRegex(
     /if:\s*needs\.validate\.outputs\.draft\s*==\s*'false'/,
     'a publish gate that respects manual draft=false releases',
 );
+
+const flatpakSnippets = [
+    'uses: actions/checkout@v7',
+    'flatpak-builder --user --disable-rofiles-fuse --install-deps-from=flathub --force-clean build-dir com.simplefile.SimpleFile.yml',
+    'flatpak build-bundle repo SimpleFile.flatpak com.simplefile.SimpleFile',
+    'uses: actions/upload-artifact@v7',
+    'name: SimpleFile-Flatpak',
+    'path: SimpleFile.flatpak',
+];
+
+for (const snippet of flatpakSnippets) {
+    requireSnippet(flatpakWorkflow, flatpakPath, snippet);
+}
+
+const dependabotAutomergeSnippets = [
+    'pull_request_target:',
+    'types: [opened, reopened, synchronize, ready_for_review]',
+    'contents: write',
+    'pull-requests: write',
+    "if: ${{ github.actor == 'dependabot[bot]' }}",
+    'uses: dependabot/fetch-metadata@v3',
+    'gh pr merge --auto --merge "$PR_URL"',
+    'PR_URL: ${{ github.event.pull_request.html_url }}',
+    'GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}',
+];
+
+for (const snippet of dependabotAutomergeSnippets) {
+    requireSnippet(dependabotAutomergeWorkflow, dependabotAutomergePath, snippet);
+}
+
+if (/^on:\s*pull_request\s*$/m.test(dependabotAutomergeWorkflow)) {
+    fail(`${dependabotAutomergePath} must not use pull_request because Dependabot PRs can receive a read-only token there.`);
+}
 
 const dependabotSnippets = [
     'package-ecosystem: "cargo"',
