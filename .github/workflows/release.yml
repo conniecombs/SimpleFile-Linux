@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release, for example v1.0.0'
+        description: 'Version to release, for example 1.0.0 or v1.0.0'
         required: true
         type: string
       draft:
@@ -43,34 +43,36 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+            RAW_VERSION="${{ github.event.inputs.version }}"
             DRAFT="${{ github.event.inputs.draft }}"
           else
-            VERSION="${GITHUB_REF#refs/tags/}"
+            RAW_VERSION="${GITHUB_REF#refs/tags/}"
             DRAFT="true"
           fi
 
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Version must look like v1.0.0 or v1.0.0-beta.1" >&2
+          VERSION="${RAW_VERSION#v}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must look like 1.0.0, v1.0.0, 1.0.0-beta.1, or v1.0.0-beta.1" >&2
             exit 1
           fi
 
           MANIFEST_VERSION="$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json"))["version"])')"
           CARGO_VERSION="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml | head -n1)"
-          TAG_VERSION="${VERSION#v}"
+          TAG_VERSION="$VERSION"
 
           if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ] || [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
             echo "Version mismatch: tag=$TAG_VERSION tauri.conf.json=$MANIFEST_VERSION Cargo.toml=$CARGO_VERSION" >&2
             exit 1
           fi
 
-          if [[ "$VERSION" == *-* ]]; then
+          if [[ "$TAG_VERSION" == *-* ]]; then
             PRERELEASE="true"
           else
             PRERELEASE="false"
           fi
 
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=v$TAG_VERSION" >> "$GITHUB_OUTPUT"
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
 
