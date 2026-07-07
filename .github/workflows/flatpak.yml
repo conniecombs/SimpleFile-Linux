@@ -1,0 +1,37 @@
+name: Flatpak Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Flatpak dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+
+      - name: Add Flathub repository
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Build Flatpak bundle
+        run: |
+          flatpak-builder --user --disable-rofiles-fuse --install-deps-from=flathub --force-clean build-dir com.simplefile.SimpleFile.yml
+          flatpak build-export repo build-dir
+          flatpak build-bundle repo SimpleFile.flatpak com.simplefile.SimpleFile
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleFile-Flatpak
+          path: SimpleFile.flatpak
