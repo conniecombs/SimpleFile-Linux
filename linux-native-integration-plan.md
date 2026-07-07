@@ -20,20 +20,20 @@ The ultimate integration. Adds complex D-Bus bindings for instant USB hotplug de
 ## Phase 1: Foundations & System Integration
 
 ### System Registration (`.desktop`)
-#### [MODIFY] [tauri.conf.json](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/tauri.conf.json)
+#### [MODIFY] [tauri.conf.json](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/tauri.conf.json)
 - Add `bundle.linux` configuration to generate a proper `.desktop` file.
 - Register the `inode/directory` MIME type so the OS knows SimpleFile can handle opening folders.
 
 ### Single-Instance & Routing
-#### [MODIFY] [Cargo.toml](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/Cargo.toml) & [lib.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/lib.rs)
+#### [MODIFY] [Cargo.toml](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/Cargo.toml) & [lib.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/lib.rs)
 - Add `tauri-plugin-single-instance`.
 - Implement event forwarding so if a user runs `xdg-open ~/Downloads`, it sends the path to the already-running SimpleFile process instead of launching a new memory-heavy webview.
 
 ### XDG Base Directories
-#### [MODIFY] [Cargo.toml](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/Cargo.toml) & [fs_ops.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/fs_ops.rs)
+#### [MODIFY] [Cargo.toml](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/Cargo.toml) & [fs_ops.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/fs_ops.rs)
 - Add the `directories` crate.
 - Expose a `get_xdg_dirs` command to fetch the localized paths for Desktop, Documents, Downloads, Music, Pictures, and Videos.
-#### [MODIFY] [tauri.ts](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/frontend/src/lib/tauri.ts) & [SidebarShell.svelte](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/frontend/src/lib/components/layout-shell/SidebarShell.svelte)
+#### [MODIFY] [tauri.ts](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/frontend/src/lib/tauri.ts) & [SidebarShell.svelte](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/frontend/src/lib/components/layout-shell/SidebarShell.svelte)
 - Update the sidebar to use these dynamic XDG paths instead of hardcoded strings.
 
 ---
@@ -41,14 +41,14 @@ The ultimate integration. Adds complex D-Bus bindings for instant USB hotplug de
 ## Phase 2: Linux-Native Data Handling
 
 ### Permissions & Ownership UI
-#### [MODIFY] [models.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/models.rs) & [fs_ops.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/fs_ops.rs)
+#### [MODIFY] [models.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/models.rs) & [fs_ops.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/fs_ops.rs)
 - Extend `FileInfo` metadata to include UNIX `mode`, `uid`, and `gid`.
 - Create `chmod_file` and `chown_file` Tauri commands using `std::os::unix::fs::PermissionsExt`.
 #### [NEW] `PermissionsTab.svelte` (Frontend)
 - Build a Properties dialogue tab exposing Read/Write/Execute toggles for Owner/Group/Others.
 
 ### Freedesktop Thumbnails
-#### [MODIFY] [preview.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/preview.rs)
+#### [MODIFY] [preview.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/preview.rs)
 - Update thumbnail generation to follow the Freedesktop Thumbnail Managing Standard.
 - Check `~/.cache/thumbnails/normal` before generating.
 - Save newly generated thumbnails to the cache to share the workload with the rest of the OS.
@@ -58,12 +58,12 @@ The ultimate integration. Adds complex D-Bus bindings for instant USB hotplug de
 ## Phase 3: Advanced Integrations
 
 ### D-Bus Udisks2 Hotplugging
-#### [NEW] [drives_dbus.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/drives_dbus.rs)
+#### [NEW] [drives_dbus.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/drives_dbus.rs)
 - Add the `zbus` crate.
 - Subscribe to `org.freedesktop.UDisks2` signals to instantly detect when a USB drive is inserted or removed, pushing an event to the frontend sidebar to update immediately.
 
 ### Outward Native Drag-and-Drop
-#### [MODIFY] [lib.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Svelte/src-tauri/src/lib.rs)
+#### [MODIFY] [lib.rs](file:///home/vox/Desktop/Ramdisk/SimpleFile-Linux/src-tauri/src/lib.rs)
 - Investigate injecting GTK drag event handlers to bridge the webview's HTML5 drag events to the native X11/Wayland drag buffers, allowing users to drag files *out* of SimpleFile into other applications.
 
 ---

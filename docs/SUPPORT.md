@@ -5,19 +5,19 @@
 1. Check the [README](../README.md) — setup instructions and feature overview are there.
 2. For cloud drive, rclone, WinFsp, or mounted-drive questions, check
    [CLOUD_DRIVES.md](CLOUD_DRIVES.md).
-3. Search [existing issues](https://github.com/conniecombs/SimpleFile-Svelte/issues) — your question
+3. Search [existing issues](https://github.com/conniecombs/SimpleFile-Linux/issues) — your question
    may already be answered.
-4. Check [Discussions](https://github.com/conniecombs/SimpleFile-Svelte/discussions) — community Q&A
+4. Check [Discussions](https://github.com/conniecombs/SimpleFile-Linux/discussions) — community Q&A
    lives there.
 
 ## Where to Get Help
 
 | Type | Where |
 |------|-------|
-| Questions about using SimpleFile | [GitHub Discussions](https://github.com/conniecombs/SimpleFile-Svelte/discussions) |
-| Bug reports | [GitHub Issues](https://github.com/conniecombs/SimpleFile-Svelte/issues) (use the bug template) |
-| Feature requests | [GitHub Issues](https://github.com/conniecombs/SimpleFile-Svelte/issues) (use the feature template) |
-| Security vulnerabilities | [Security Advisories](https://github.com/conniecombs/SimpleFile-Svelte/security/advisories/new) — **never a public issue** |
+| Questions about using SimpleFile | [GitHub Discussions](https://github.com/conniecombs/SimpleFile-Linux/discussions) |
+| Bug reports | [GitHub Issues](https://github.com/conniecombs/SimpleFile-Linux/issues) (use the bug template) |
+| Feature requests | [GitHub Issues](https://github.com/conniecombs/SimpleFile-Linux/issues) (use the feature template) |
+| Security vulnerabilities | [Security Advisories](https://github.com/conniecombs/SimpleFile-Linux/security/advisories/new) — **never a public issue** |
 | Contributing code | Read [CONTRIBUTING.md](CONTRIBUTING.md) first |
 
 ## Filing a Good Bug Report
