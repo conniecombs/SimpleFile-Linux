@@ -432,7 +432,7 @@ For security vulnerabilities, do **not** open a public issue. See
 **Do not open a public GitHub issue for security vulnerabilities.**
 
 Please report them privately via GitHub's
-[Security Advisories](https://github.com/conniecombs/SimpleFile-Svelte/security/advisories/new) feature.
+[Security Advisories](https://github.com/conniecombs/SimpleFile-Linux/security/advisories/new) feature.
 Include a description of the vulnerability, steps to reproduce, and potential impact. We aim to
 acknowledge reports within 48 hours and publish a fix within 14 days for critical issues.
 

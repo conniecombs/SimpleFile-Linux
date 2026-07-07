@@ -15,7 +15,7 @@ minor release, the two most recent minor versions will receive security fixes wh
 **Do not open a public GitHub issue for security vulnerabilities.**
 
 Please report them privately using GitHub's
-[Security Advisories](https://github.com/conniecombs/SimpleFile-Svelte/security/advisories/new) feature.
+[Security Advisories](https://github.com/conniecombs/SimpleFile-Linux/security/advisories/new) feature.
 
 Include the following in your report:
 
