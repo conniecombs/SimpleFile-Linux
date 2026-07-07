@@ -1,0 +1,61 @@
+app-id: com.simplefile.SimpleFile
+runtime: org.gnome.Platform
+runtime-version: "46"
+sdk: org.gnome.Sdk
+command: simplefile
+finish-args:
+  # GUI sockets
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  
+  # Full filesystem access for a file manager
+  - --filesystem=host
+  
+  # Network access for cloud storage (rclone) and webviews
+  - --share=network
+  
+  # D-Bus access for Udisks2 (USB hotplugging)
+  - --talk-name=org.freedesktop.UDisks2
+
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node20
+
+build-options:
+  append-path: /usr/lib/sdk/node20/bin
+  build-args:
+    - --share=network
+  env:
+    CARGO_HOME: /run/build/simplefile/cargo
+    NPM_CONFIG_CACHE: /run/build/simplefile/npm
+
+modules:
+  - name: simplefile
+    buildsystem: simple
+    build-commands:
+      # Build frontend
+      - cd frontend && npm ci
+      - cd frontend && npm run build:app
+      # Build Tauri backend
+      - cd src-tauri && cargo build --release
+      # Install binary
+      - install -D src-tauri/target/release/simplefile /app/bin/simplefile
+      # Install icons
+      - install -D src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.simplefile.SimpleFile.png
+      - install -D src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/com.simplefile.SimpleFile.png
+      - mkdir -p /app/share/applications/
+      - |
+        cat <<EOF > /app/share/applications/com.simplefile.SimpleFile.desktop
+        [Desktop Entry]
+        Name=SimpleFile
+        Exec=simplefile %U
+        Icon=com.simplefile.SimpleFile
+        Type=Application
+        Categories=Utility;FileManager;
+        MimeType=inode/directory;
+        Terminal=false
+        EOF
+    sources:
+      - type: dir
+        path: .

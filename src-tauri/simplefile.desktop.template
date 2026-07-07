@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=System;Utility;Core;
+{{#if comment}}
+Comment={{comment}}
+{{/if}}
+Exec={{exec}} %U
+Icon={{icon}}
+Name={{name}}
+Terminal=false
+Type=Application
+MimeType=inode/directory;
