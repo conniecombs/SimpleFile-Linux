@@ -30,12 +30,14 @@ function requireRegex(source, file, pattern, label) {
 const ciPath = '.github/workflows/ci.yml';
 const releasePath = '.github/workflows/release.yml';
 const flatpakPath = '.github/workflows/flatpak.yml';
+const flatpakManifestPath = 'com.simplefile.SimpleFile.yml';
 const dependabotAutomergePath = '.github/workflows/dependabot-automerge.yml';
 const dependabotPath = '.github/dependabot.yml';
 
 const ciWorkflow = readText(ciPath);
 const releaseWorkflow = readText(releasePath);
 const flatpakWorkflow = readText(flatpakPath);
+const flatpakManifest = readText(flatpakManifestPath);
 const dependabotAutomergeWorkflow = readText(dependabotAutomergePath);
 const dependabot = readText(dependabotPath);
 
@@ -117,6 +119,17 @@ const flatpakSnippets = [
 
 for (const snippet of flatpakSnippets) {
     requireSnippet(flatpakWorkflow, flatpakPath, snippet);
+}
+
+const flatpakManifestSnippets = [
+    'org.freedesktop.Sdk.Extension.node24',
+    'org.freedesktop.Sdk.Extension.rust-stable',
+    'append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin',
+    'cd src-tauri && cargo build --release',
+];
+
+for (const snippet of flatpakManifestSnippets) {
+    requireSnippet(flatpakManifest, flatpakManifestPath, snippet);
 }
 
 const dependabotAutomergeSnippets = [
