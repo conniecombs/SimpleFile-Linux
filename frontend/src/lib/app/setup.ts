@@ -1,5 +1,5 @@
-
 import { onMount } from 'svelte';
+import { invokeCommand } from '../tauri.js';
   // @ts-ignore
   import { addBookmark, addRecentLocation, clearRecentLocations, loadBookmarks, loadRecentLocations, loadSettings, loadTabs, removeBookmark, saveSettings, saveTabs, state as appState } from './state.svelte.ts';
   // @ts-ignore
@@ -132,7 +132,7 @@ export function initApp() {
       appState.homePath = home;
       
       try {
-        const { invokeCommand } = await import('../tauri.js');
+
         const xdg = await invokeCommand('get_xdg_dirs', {}) as Record<string, string | null>;
         appState.xdgDirs = xdg;
       } catch (e) {

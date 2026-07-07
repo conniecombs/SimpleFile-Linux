@@ -82,7 +82,7 @@ const releaseSnippets = [
     'cargo test --locked --all-features',
     'cargo audit --deny warnings',
     'TAURI_SIGNING_PRIVATE_KEY',
-    'tauri-apps/tauri-action@action-v0.6.2',
+    'tauri-apps/tauri-action@',
     'uploadUpdaterJson: true',
     'uploadUpdaterSignatures: true',
     'updaterJsonPreferNsis: true',

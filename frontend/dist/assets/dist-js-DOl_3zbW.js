@@ -1,2 +1,0 @@
-import{a as e,t}from"./core-B2shkpH0.js";async function n(n,r){let i=new t;r&&(i.onmessage=r),await e(`plugin:drag|start_drag`,{item:n.item,image:n.icon,options:{mode:n.mode},onEvent:i})}export{n as startDrag};
-//# sourceMappingURL=dist-js-DOl_3zbW.js.map
