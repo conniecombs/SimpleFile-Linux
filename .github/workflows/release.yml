@@ -108,7 +108,8 @@ jobs:
             librsvg2-dev \
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev \
-            patchelf
+            patchelf \
+            rpm
 
       - name: Check Rust formatting
         working-directory: src-tauri
@@ -210,7 +211,8 @@ jobs:
             librsvg2-dev \
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev \
-            patchelf
+            patchelf \
+            rpm
 
       - name: Verify updater signing secret
         shell: bash
