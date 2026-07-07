@@ -40,8 +40,11 @@ if (!endpoints.includes(expectedEndpoint)) {
 
 const requiredWorkflowSnippets = [
     'TAURI_SIGNING_PRIVATE_KEY',
-    'uploadUpdaterJson: true',
-    'uploadUpdaterSignatures: true',
+    'Resolve updater signing mode',
+    'Missing updater signing secret',
+    'src-tauri/tauri.local.conf.json',
+    'uploadUpdaterJson: ${{ steps.signing.outputs.upload_updater }}',
+    'uploadUpdaterSignatures: ${{ steps.signing.outputs.upload_updater }}',
     'updaterJsonPreferNsis: true',
 ];
 
