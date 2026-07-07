@@ -92,13 +92,10 @@ import {
     CleanupResult,
     ConflictAction,
     FileEntry,
-    MountInfo,
     NativeFileDropEventPayload,
     OperationId,
     PathString,
     ProgressUpdate,
-    RcloneEntry,
-    RcloneRemote,
     RenameRequest,
     SearchOptions,
     SmartFolder,
@@ -2298,5 +2295,4 @@ const defaultColorLabels = [
       showError(error);
     }
   }
-
 

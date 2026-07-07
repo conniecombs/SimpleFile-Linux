@@ -121,8 +121,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
   `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json`.
 - README now better reflects SimpleFile's distinctive feature set, including
   advanced rename, clipboard history, file comparison, metadata inspection,
-  cloud-to-cloud transfers, rclone/WinFsp drive mounts, safety guardrails, and
-  updater behavior.
+  safety guardrails, and updater behavior.
 - The browser mock page now includes representative files and a mocked
   comparison response so the compare dialog can be exercised outside Tauri.
 
@@ -158,53 +157,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 - `frontend/scripts/check-tauri-invokes.mjs` and `npm run check:invokes` for verifying frontend
   Tauri IPC wrappers against backend command registration.
 - Startup panic logging to `%LOCALAPPDATA%\SimpleFile\startup.log` on Windows, with app-data/home fallbacks on other platforms.
-- **About SimpleFile dialog** in the More Actions dropdown, with live backend metadata, major
-  feature details, project links, and explicit rclone/WinFsp credits.
+- **About SimpleFile dialog** in the More Actions dropdown, with live backend metadata,
+  major feature details, and project links.
 - **Disk Cleanup workflow** with backend progress events, cancellation, large-file results,
   SHA-256 duplicate grouping, and a frontend results modal.
-- **WinFsp installer/status support** in Settings -> Cloud Tools. The UI exposes a separate
-  **Install WinFsp Driver** button and explains that WinFsp is a Windows filesystem driver/runtime
-  used by rclone mounts.
-- **Windows rclone drive-letter mounts**. Cloud mount configs now store `mount_point`; Windows
-  mounts use available high drive letters such as `Z:\` instead of app-data mount folders.
-- `CLOUD_DRIVES.md` documenting rclone, WinFsp, Windows drive-letter mounts, install behavior,
-  freeze/WinFsp safeguards, troubleshooting, security notes, and credits.
-- **Plugin-based cloud drive system** — replaced hardcoded per-provider code with a
-  trait-based plugin registry. Each cloud provider is now fully self-contained.
-  - `src-tauri/src/cloud/mod.rs` — `CloudPlugin` trait, `all_plugins()` / `find_plugin()`
-    registry, and the new `cloud_list_plugins` Tauri command that exposes provider metadata
-    to the frontend.
-  - `src-tauri/src/cloud/gdrive_plugin.rs` — Google Drive `CloudPlugin` implementation
-    (metadata for rclone-backed Google Drive sign-in and mount restore).
-  - `src-tauri/src/cloud/pcloud_plugin.rs` — pCloud `CloudPlugin` implementation
-    (metadata for rclone-backed pCloud sign-in and mount restore).
-  - `src-tauri/src/cloud/onedrive_plugin.rs` — OneDrive `CloudPlugin` implementation
-    (metadata for rclone-backed Microsoft sign-in and mount restore).
-  - `src-tauri/src/rclone.rs` — Generic rclone command adapter for remote creation, listing,
-    upload/download, folder creation, rename/delete, mounting, and restore.
-  - `src-tauri/src/models.rs` — New `CloudPluginMeta`, `AuthField`, and `SelectOption`
-    types so the backend can describe any provider's connect form to the frontend.
-  - `svelte-frontend/src/lib/legacyCloudPluginRegistry.ts` — Frontend registry that
-    discovers Svelte-side plugin modules and merges them with backend metadata from
-    `cloud_list_plugins` at startup.
-  - `svelte-frontend/src/lib/legacy-cloud-plugins/gdrive.ts` — Self-contained Google
-    Drive frontend plugin: SVG icon, rclone-backed Sign in with Google dialog, and
-    cloud operation wrappers.
-  - `svelte-frontend/src/lib/legacy-cloud-plugins/pcloud.ts` — Self-contained pCloud
-    frontend plugin: rclone-backed pCloud sign-in with US/EU region selection and cloud
-    operation wrappers.
-  - `svelte-frontend/src/lib/legacy-cloud-plugins/onedrive.ts` — Self-contained
-    OneDrive frontend plugin: rclone-backed Microsoft sign-in dialog and cloud
-    operation wrappers.
-  - `svelte-frontend/src/lib/legacyRclonePluginCommon.ts` — Shared frontend helpers
-    for rclone-backed providers.
-  - `svelte-frontend/src/lib/cloudTransferWorkflow.ts` — Shared cloud-to-cloud transfer picker and
-    Transfer Manager queue integration for rclone remotes.
-  - `svelte-frontend/src/lib/legacyCloudManager.ts` — Generic cloud UI with zero provider-specific
-    code: provider picker dialog, file browser (list / navigate / rename / delete /
-    upload / create folder), auth dialog mounting, and session management with automatic
-    OAuth2 token refresh.
-  - `frontend/js/api.js` — New `cloudListPlugins()` wrapper for the backend command.
 - `ROADMAP.md` — phased development plan from v0.3 to v1.0
 - `CONTRIBUTING.md` — contributor guide covering setup, style, and PR process
 - `CHANGELOG.md` — this file
@@ -230,55 +186,17 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 - Rust dependency audit remains a hard failure, with explicit accepted RustSec advisory IDs for current Tauri/Linux GTK transitive dependencies.
 - `reqwest` 0.13 feature flags now use the current `rustls`, `form`, and `query` features.
 - Tauri bundle identifier changed from `com.simplefile.app` to `com.simplefile.desktop` to avoid macOS `.app` bundle-extension conflicts.
-- Google Drive, OneDrive, Dropbox, pCloud, and S3-compatible storage now use rclone as the shared cloud
-  backbone for normal sign-in/configuration, browsing, transfers, and mounts.
-- Google Drive, OneDrive, and pCloud no longer require app-owned OAuth client IDs or password forms
-  for normal users; rclone
-  opens the provider browser sign-in and stores provider tokens in the local rclone config.
-- Mounted rclone cloud paths on Windows are treated as cloud/network paths rather than normal local
-  folders for expensive background behavior. SimpleFile avoids watchers, automatic previews,
-  automatic thumbnails, folder-size scans, recursive properties, and Windows volume/free-space
-  probing for known cloud drive-letter mounts.
-- Known rclone mount folders are listed through `rclone lsjson` and mapped back to local
-  drive-letter child paths instead of being listed through WinFsp with `std::fs::read_dir`.
-- Cloud-to-cloud copy and move flows now transfer selected files or folders between configured
-  rclone remotes from the provider panels and generic cloud browser.
-- `src-tauri/src/mounts.rs` — `restore_mounts` and `unmount_drive` now dispatch cloud
-  provider operations through the plugin registry (`find_plugin`) instead of a hardcoded
-  `match` on provider name strings. Adding a new cloud provider no longer requires editing
-  `mounts.rs`.
 - Terminal launching no longer depends on `tauri-plugin-shell`; platform terminal commands are
   launched from scoped Rust backend commands with separated arguments.
 - `Open With...` now launches only trusted executable targets and blocks shells/scripting runtimes
   such as `cmd`, `powershell`, `bash`, `python`, `node`, and similar interpreters.
-- `README.md` — Updated feature list, comparison table, and project structure tree to
-  reflect the cloud plugin system and OneDrive support.
+- `README.md` — Updated feature list, comparison table, and project structure tree.
 
 ### Fixed
 - Cargo dependency resolution failure caused by the old `reqwest` `rustls-tls` feature name.
 - Rust Clippy failures under `-D warnings`.
-- Segmented FTP, Google Drive, pCloud, and OneDrive downloads now clamp worker counts so tiny files cannot produce zero-length chunks or underflowed byte ranges.
 - Disk cleanup duplicate hashing now hex-encodes SHA-256 digests without relying on removed digest formatting behavior.
 - Startup no longer panics before the main window opens when the updater plugin is present but production updater endpoints are not configured.
-- Google Drive and OneDrive authorization now open the system browser from backend commands, fixing
-  auth flows where the frontend opener API was unavailable.
-- Missing Google sign-in build configuration is now reported as a broken build/configured-release
-  issue instead of telling normal users to set developer environment variables.
-- rclone-backed sign-in now serializes OAuth setup and clears stale SimpleFile rclone auth
-  listeners on Windows before starting a new sign-in, preventing Google Drive, OneDrive, and
-  pCloud from failing when an abandoned rclone process is still holding the local callback port.
-- Remote Drives actions keep a selected row after cloud refreshes, nested prompts now appear above
-  the Remote Drives window, and Windows rclone mounts no longer pre-create the mount folder that
-  rclone expects to own.
-- Browsing mounted rclone/WinFsp cloud drives on Windows no longer fails with
-  "Failed to resolve path" / OS error 1005; file listing and file actions now preserve the
-  mounted path instead of canonicalizing through the provider junction.
-- Accessing known mounted rclone/WinFsp cloud drives no longer triggers the background filesystem
-  probes that could hard-freeze the app when the rclone process or WinFsp mount became wedged.
-- rclone mount liveness checks on Windows avoid `read_dir` probing of drive roots when the saved
-  mount process cannot be found.
-- Windows drive listing skips `GetVolumeInformationW` and `GetDiskFreeSpaceExW` probes for saved
-  cloud drive letters, avoiding another WinFsp blocking path.
 - PowerShell-as-administrator launch now uses an encoded PowerShell command with a literal path
   rather than interpolating untrusted path text into shell syntax.
 - Disk cleanup scans can be cancelled through the progress dialog and no longer rely on blocking
@@ -323,7 +241,6 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 ## [0.2.0] — 2025-01-01
 
 ### Added
-- Google Drive and pCloud cloud storage mounting with multi-threaded transfers
 - Intelligent network drive detection and per-drive optimization
 - File checksum calculation (MD5, SHA-1, SHA-256) via `checksum.rs`
 - `BUGS.md` — comprehensive 20-bug analysis with fix status

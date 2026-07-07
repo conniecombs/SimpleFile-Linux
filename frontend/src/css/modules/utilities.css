@@ -6,7 +6,7 @@
 
 /* ── Inline-style replacements (required for removing CSP unsafe-inline) ─── */
 
-/* Replaces: style="font-weight: 600;" in breadcrumb / cloud browser spans */
+/* Replaces: style="font-weight: 600;" in breadcrumb spans */
 .fw-semibold { font-weight: 600; }
 
 /* Replaces: style="cursor: pointer; color: var(--accent-color);" on crumb links */

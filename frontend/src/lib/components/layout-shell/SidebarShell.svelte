@@ -51,14 +51,6 @@
     switch ((drive.drive_type || '').toLowerCase()) {
       case 'network':
         return '🌐';
-      case 'cloud':
-      case 'rclone':
-      case 'gdrive':
-      case 'onedrive':
-      case 'pcloud':
-      case 'dropbox':
-      case 's3':
-        return '☁️';
       case 'removable':
         return '💾';
       case 'cd-rom':

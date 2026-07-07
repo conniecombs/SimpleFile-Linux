@@ -27,10 +27,6 @@ were deliberately changed:
 | Image EXIF Metadata | Implemented |
 | Configurable Columns | Implemented for visible list columns, a header-only right-click column menu, and resizable column widths |
 
-New cloud-drive work that was not in the original list is documented in
-[`CLOUD_DRIVES.md`](CLOUD_DRIVES.md): rclone-backed provider panels, WinFsp installation,
-Windows drive-letter mounts, and WinFsp freeze safeguards.
-
 ---
 
 ## Table of Contents

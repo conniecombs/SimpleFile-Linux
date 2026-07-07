@@ -11,23 +11,15 @@ This review documents the usability, wiring, reliability, and CI/CD findings for
 - Release packaging now uses `tauri-apps/tauri-action@action-v0.6.2`.
 - The updater plugin now has an explicit placeholder config so it cannot abort startup; updater artifacts remain disabled until signing and endpoint configuration are complete.
 - Windows startup panics are written to `%LOCALAPPDATA%\SimpleFile\startup.log`.
-- Segmented FTP, Google Drive, pCloud, and OneDrive downloads clamp thread counts to avoid zero-length chunks on small files.
 
 ## 2026-05-24 maintenance update
 
-- Settings now exposes separate rclone and WinFsp status/install controls, with WinFsp clearly
-  described as the Windows filesystem driver/runtime required by rclone mounts.
-- Windows rclone cloud mounts now use persisted drive letters instead of app-data mount folders.
-- Known rclone/WinFsp mount paths are listed through rclone, while watchers, previews,
-  thumbnails, folder-size scans, recursive properties, drive-space probes, and mount-root liveness
-  probes are skipped to avoid WinFsp hard-freeze paths.
 - `tauri-plugin-shell` has been removed; terminal launch and Open With behavior use scoped backend
   process-launch commands with argument separation, trusted application roots, and a shell/runtime
   denylist.
 - Disk cleanup has a dedicated frontend workflow, progress reporting, cancellation, and result
   presentation.
-- The More Actions menu now includes a complete About SimpleFile dialog with live metadata and
-  rclone/WinFsp credits.
+- The More Actions menu now includes a complete About SimpleFile dialog with live metadata.
 - `npm run check:invokes` verifies frontend IPC wrapper names against the Rust command registry.
 
 ## Scope
@@ -40,7 +32,6 @@ Reviewed areas:
 - `frontend/js/api.js`
 - `frontend/js/events.js`
 - `frontend/js/ui/*`
-- `svelte-frontend/src/lib/legacy-cloud-plugins/*` and cloud workflow modules
 - `src-tauri/Cargo.toml`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/src/lib.rs`
@@ -82,10 +73,9 @@ Reviewed areas:
 ### Wiring findings
 
 - `src-tauri/src/lib.rs` registers the app state, opener/updater plugins, and all backend commands through `tauri::generate_handler!`.
-- `frontend/js/api.js` wraps the Tauri IPC commands used by the UI, including filesystem, progress, watcher, preview, search, git, archive, terminal, FTP, mount, cloud, checksum, installer, app-version, and updater calls.
+- `frontend/js/api.js` wraps the Tauri IPC commands used by the UI, including filesystem, progress, watcher, preview, search, git, archive, terminal, checksum, installer, app-version, and updater calls.
 - Version wiring is now aligned across `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`,
   and `src-tauri/tauri.conf.json` at `1.0.0`.
-- Cloud provider commands are routed through a plugin architecture instead of hardcoded frontend-only provider logic.
 
 ### Backend reliability/performance findings already in good shape
 
@@ -157,4 +147,4 @@ Version bumped to `1.0.0` in:
 
 ## 5. Summary
 
-The project is generally well-structured for a Tauri file manager: frontend IPC wrappers are centralized, Rust backend modules are separated by capability, and the cloud-provider architecture is plugin based. The most important delivery issue was not application logic but release hygiene: CI/CD now validates release-version consistency, runs release quality gates, and builds cross-platform installer artifacts for the v1.0.0 baseline while documenting remaining usability/backend follow-up work.
+The project is generally well-structured for a Tauri file manager: frontend IPC wrappers are centralized and Rust backend modules are separated by capability. The most important delivery issue was not application logic but release hygiene: CI/CD now validates release-version consistency, runs release quality gates, and builds cross-platform installer artifacts for the v1.0.0 baseline while documenting remaining usability/backend follow-up work.

@@ -95,13 +95,10 @@ import { invokeCommand } from '../tauri.js';
     CleanupResult,
     ConflictAction,
     FileEntry,
-    MountInfo,
     NativeFileDropEventPayload,
     OperationId,
     PathString,
     ProgressUpdate,
-    RcloneEntry,
-    RcloneRemote,
     RenameRequest,
     SearchOptions,
     SmartFolder,
@@ -622,10 +619,6 @@ export function initApp() {
             }
           })();
           break;
-        case 'rclone-install-btn':
-          break;
-        case 'winfsp-install-btn':
-          break;
         case 'rar-install-btn':
           void installToolFlow('RAR', installRar, 'rar-install-msg');
           break;
@@ -791,10 +784,6 @@ export function initApp() {
         if (overlayById('progress-overlay')?.classList.contains('visible')) {
           event.preventDefault();
           hideProgressFlow();
-          return;
-        }
-        if (overlayById('remote-drives-overlay')?.classList.contains('visible')) {
-          event.preventDefault();
           return;
         }
       }

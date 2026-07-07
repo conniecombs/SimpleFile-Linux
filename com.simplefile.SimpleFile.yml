@@ -13,7 +13,7 @@ finish-args:
   # Full filesystem access for a file manager
   - --filesystem=host
   
-  # Network access for cloud storage (rclone) and webviews
+  # Network access for webviews and update checks
   - --share=network
   
   # D-Bus access for Udisks2 (USB hotplugging)

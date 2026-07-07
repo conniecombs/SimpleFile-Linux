@@ -25,11 +25,6 @@ resolution is reproducible through the committed Cargo lockfile.
 - File system watcher (auto-refresh), terminal integration, FTP browsing
 - Drag-and-drop, Open With, theming (dark/light), settings persistence, and an About dialog
 - Disk cleanup scanning for large files and duplicate SHA-256 groups, with progress and cancellation
-- **Cloud storage via plugin system** - Google Drive, pCloud, Microsoft OneDrive, Dropbox,
-  and S3-compatible storage use rclone-backed provider panels; adding new providers requires
-  minimal shared infrastructure work
-- **Windows cloud drive mounts** - rclone-backed mounts use drive letters, can install/check
-  WinFsp from Settings, and avoid background WinFsp probes that previously risked app freezes
 
 **What still needs work:**
 - Disk space reporting on macOS/Linux still needs a proper `statvfs` / `statfs` implementation.
@@ -42,13 +37,12 @@ resolution is reproducible through the committed Cargo lockfile.
 Several items originally listed as future work have landed in the prototype:
 Quick Access, quick filter, path autocomplete, checksums, image metadata, Open With,
 configurable columns, color labels, undo/redo basics, advanced rename, disk cleanup,
-file comparison, external drop handling, Dropbox/S3 rclone support, the transfer manager, WinFsp install
-support, Windows rclone drive-letter mounts, and the About dialog.
+file comparison, external drop handling, the transfer manager, and the About dialog.
 
 The phase descriptions below are retained as planning history and should be interpreted as
 "harden and complete" where an MVP already exists. After the v1.0.0 tag, the roadmap should
 be re-baselined around remaining production gaps: cross-platform QA,
-accessibility, performance, signing/updater readiness, and tests for the newer cloud/mount
+accessibility, performance, signing/updater readiness, and tests for newer transfer
 and process-launch behavior.
 
 ---
@@ -381,8 +375,7 @@ sources into SimpleFile.
 - Expand README with a feature walkthrough, GIF/screenshot gallery, and FAQ.
 - Write `docs/ARCHITECTURE.md` explaining the Tauri command pattern, state management, and
   the CSS module system.
-- Write `docs/EXTENDING.md` — a guide for contributors adding new Tauri commands or UI modules
-  (the cloud plugin guide in `CONTRIBUTING.md` can serve as a template for this).
+- Write `docs/EXTENDING.md` — a guide for contributors adding new Tauri commands or UI modules.
 
 ---
 
@@ -462,7 +455,7 @@ sources into SimpleFile.
 | **v0.7.0** | Power User III | Duplicate finder, configurable columns, file tagging |
 | **v0.8.0** | Differentiators | Disk usage visualization, column view, open-with |
 | **v0.9.0** | Polish | File comparison MVP landed in v1.0.2; external drag-and-drop polish remains |
-| **v1.0.0** | Release baseline | Cross-platform CI/CD, release builds, cloud mount hardening, About dialog, and full docs |
+| **v1.0.0** | Release baseline | Cross-platform CI/CD, release builds, About dialog, and full docs |
 | **v1.1+** | Distribution hardening | Code signing, production updater channel, accessibility benchmarks, performance benchmarks |
 
 ---
@@ -484,5 +477,4 @@ Large features should be discussed in an issue before any code is written.
 The following were considered and deliberately excluded from the v1.0 scope:
 
 - **Built-in text editor** — Opens scope too far; use "Open With" instead.
-- **Cloud sync client** — Google Drive, pCloud, and OneDrive mounting is supported; two-way sync is out of scope.
 - **Mobile support** — Tauri 2 supports mobile; this is a post-v1.0 investigation.

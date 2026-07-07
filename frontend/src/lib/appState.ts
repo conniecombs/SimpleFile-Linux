@@ -3,20 +3,16 @@ import type {
   ClipboardAction,
   DriveInfo,
   FileEntry,
-  FtpCredentials,
   GitStatus,
-  MountInfo,
   OperationId,
   PathString,
   ProgressUpdate,
-  RcloneRemote,
   SearchOptions,
   SearchResult,
   SmartFolder,
   ThemeName,
   TreeNode,
   ViewMode,
-  WebdavCredentials,
   ColumnId,
 } from './types';
 
@@ -77,9 +73,6 @@ export interface FolderStackItem {
   id: string | number;
   name: string;
 }
-
-export type RemoteAuth = RcloneRemote;
-export type RemoteEntry = any; // fallback since we don't have RcloneEntry imported here
 
 export interface SimpleFileAppState {
   currentPath: PathString;

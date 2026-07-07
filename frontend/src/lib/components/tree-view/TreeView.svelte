@@ -8,7 +8,6 @@
     isLoaded: boolean;
     name: string;
     path: string;
-    isCloud?: boolean;
   };
 
   let {
@@ -139,24 +138,6 @@
       {/if}
       <span class="tree-icon" aria-hidden="true">{node.icon}</span>
       <span class="tree-name">{node.name}</span>
-      {#if node.isCloud}
-        <button
-          type="button"
-          class="sidebar-btn unmount-btn na-unmount-btn"
-          title="Disconnect Drive"
-          aria-label={`Disconnect ${node.name}`}
-          onclick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            event.currentTarget?.dispatchEvent(new CustomEvent('simplefile:tree-node-unmount', {
-              bubbles: true,
-              detail: { path: node.path }
-            }));
-          }}
-        >
-          &times;
-        </button>
-      {/if}
     </div>
 
     {#if node.hasChildren}

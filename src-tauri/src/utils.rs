@@ -148,10 +148,9 @@ pub(crate) fn validate_existing_path(path: &str) -> Result<PathBuf, String> {
 
 /// Validate a path that must exist while preserving the exact path supplied.
 ///
-/// Some mounted filesystems, including WinFsp/rclone mounts on Windows, can be
-/// opened and listed normally but fail `canonicalize()` with OS error 1005.
-/// File-browser operations should keep the mount-point path intact instead of
-/// resolving it first.
+/// Some mounted filesystems can be opened and listed normally but fail
+/// `canonicalize()`. File-browser operations should keep the supplied path
+/// intact instead of resolving it first.
 pub(crate) fn validate_existing_path_no_resolve(path: &str) -> Result<PathBuf, String> {
     let path_buf = PathBuf::from(path);
     fs::metadata(&path_buf)

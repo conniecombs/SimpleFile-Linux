@@ -41,7 +41,6 @@ Closes #<!-- issue number -->
 - [ ] I have run the documented `cargo audit --deny warnings` command and there are no new advisories
 - [ ] New Tauri commands validate path inputs via `validate_existing_path()` or `validate_name()`
 - [ ] No user-controlled data is passed to `innerHTML` or shell commands without sanitization
-- [ ] Cloud mount changes avoid direct background filesystem probes on known rclone/WinFsp mounts
 - [ ] I have added tests for new backend behavior (or explained why tests are not applicable)
 - [ ] I have updated documentation if the change affects user-facing behavior
 
