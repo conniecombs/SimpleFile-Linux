@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release, for example 1.0.0 or v1.0.0'
-        required: true
+        description: 'Version to release; leave blank to use the manifest version'
+        required: false
         type: string
       draft:
         description: 'Create the GitHub release as a draft'
@@ -42,9 +42,17 @@ jobs:
         id: version
         shell: bash
         run: |
+          MANIFEST_VERSION="$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json"))["version"])')"
+          CARGO_VERSION="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml | head -n1)"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             RAW_VERSION="${{ github.event.inputs.version }}"
             DRAFT="${{ github.event.inputs.draft }}"
+            RAW_VERSION="${RAW_VERSION#"${RAW_VERSION%%[![:space:]]*}"}"
+            RAW_VERSION="${RAW_VERSION%"${RAW_VERSION##*[![:space:]]}"}"
+            if [ -z "$RAW_VERSION" ]; then
+              RAW_VERSION="$MANIFEST_VERSION"
+            fi
           else
             RAW_VERSION="${GITHUB_REF#refs/tags/}"
             DRAFT="true"
@@ -53,16 +61,14 @@ jobs:
           VERSION="${RAW_VERSION#v}"
 
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Version must look like 1.0.0, v1.0.0, 1.0.0-beta.1, or v1.0.0-beta.1" >&2
+            echo "::error title=Invalid release version::Version input '$RAW_VERSION' must look like 1.0.0, v1.0.0, 1.0.0-beta.1, or v1.0.0-beta.1. Leave the manual input blank to use the manifest version $MANIFEST_VERSION."
             exit 1
           fi
 
-          MANIFEST_VERSION="$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json"))["version"])')"
-          CARGO_VERSION="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml | head -n1)"
           TAG_VERSION="$VERSION"
 
           if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ] || [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
-            echo "Version mismatch: tag=$TAG_VERSION tauri.conf.json=$MANIFEST_VERSION Cargo.toml=$CARGO_VERSION" >&2
+            echo "::error title=Release version mismatch::Requested version '$TAG_VERSION' must match src-tauri/tauri.conf.json=$MANIFEST_VERSION and src-tauri/Cargo.toml=$CARGO_VERSION. Leave the manual input blank to use the manifest version."
             exit 1
           fi
 

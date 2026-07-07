@@ -585,8 +585,10 @@ Release tags must use the format:
 vMAJOR.MINOR.PATCH
 ```
 
-Manual release versions may use either `MAJOR.MINOR.PATCH` or
-`vMAJOR.MINOR.PATCH`; the workflow normalizes them to the release tag format.
+Manual release versions are optional. If left blank, the workflow uses the
+checked-in manifest version. Explicit manual versions may use either
+`MAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH`; the workflow normalizes them to the
+release tag format.
 
 The version must match both:
 

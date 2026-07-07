@@ -35,7 +35,8 @@ tracked.
 1. Update the version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
 2. Commit the version bump and release notes.
 3. Create a tag such as `v1.1.0`, or run the `Release` GitHub Actions workflow
-   manually with either `1.1.0` or `v1.1.0`.
+   manually. Leave the manual version blank to use the checked-in manifest
+   version, or enter either `1.1.0` or `v1.1.0`.
 4. The release workflow runs quality gates, builds each platform, signs updater
    artifacts, uploads signatures, and uploads `latest.json`.
 5. Publish the GitHub release when ready. Draft releases are not returned by the
