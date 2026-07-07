@@ -27,6 +27,12 @@ function requireRegex(source, file, pattern, label) {
     }
 }
 
+function forbidSnippet(source, file, snippet) {
+    if (source.includes(snippet)) {
+        fail(`${file} must not include ${snippet}.`);
+    }
+}
+
 const ciPath = '.github/workflows/ci.yml';
 const releasePath = '.github/workflows/release.yml';
 const flatpakPath = '.github/workflows/flatpak.yml';
@@ -58,9 +64,6 @@ const ciSnippets = [
     'cargo clippy --locked --all-targets --all-features -- -D warnings',
     'cargo test --locked --all-features',
     'cargo audit --deny warnings',
-    'x86_64-pc-windows-msvc',
-    'x86_64-apple-darwin',
-    'aarch64-apple-darwin',
     'x86_64-unknown-linux-gnu',
     'cargo build --locked --release --all-features --target ${{ matrix.target }}',
 ];
@@ -94,6 +97,7 @@ const releaseSnippets = [
     'uploadUpdaterSignatures: true',
     'updaterJsonPreferNsis: true',
     'args: --target ${{ matrix.target }}',
+    'Linux installers are attached below.',
     'softprops/action-gh-release@v3',
 ];
 
@@ -107,6 +111,21 @@ requireRegex(
     /if:\s*needs\.validate\.outputs\.draft\s*==\s*'false'/,
     'a publish gate that respects manual draft=false releases',
 );
+
+const forbiddenDesktopTargets = [
+    'windows-latest',
+    'x86_64-pc-windows-msvc',
+    'macos-15',
+    'macos-15-intel',
+    'x86_64-apple-darwin',
+    'aarch64-apple-darwin',
+    'Cross-platform installers are attached below.',
+];
+
+for (const snippet of forbiddenDesktopTargets) {
+    forbidSnippet(ciWorkflow, ciPath, snippet);
+    forbidSnippet(releaseWorkflow, releasePath, snippet);
+}
 
 const flatpakSnippets = [
     'uses: actions/checkout@v7',
