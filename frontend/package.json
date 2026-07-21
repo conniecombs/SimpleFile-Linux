@@ -27,6 +27,6 @@
     "@crabnebula/tauri-plugin-drag": "^2.1.0",
     "@tauri-apps/api": "^2.11.0",
     "highlight.js": "^11.11.1",
-    "marked": "^18.0.6"
+    "marked": "^18.0.7"
   }
 }
