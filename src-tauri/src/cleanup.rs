@@ -194,7 +194,6 @@ fn check_cancelled(cancel: &AtomicBool) -> Result<(), String> {
 /// success. If the file cannot be read, an error is returned.
 fn compute_sha256(path: &Path, cancel: &AtomicBool) -> Result<String, std::io::Error> {
     use sha2::{Digest, Sha256};
-    use std::fmt::Write as _;
     use std::io::Read;
 
     let mut file = fs::File::open(path)?;
@@ -216,9 +215,11 @@ fn compute_sha256(path: &Path, cancel: &AtomicBool) -> Result<String, std::io::E
     }
 
     let digest = hasher.finalize();
+    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut encoded = String::with_capacity(digest.len() * 2);
     for byte in digest {
-        write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+        encoded.push(HEX[(byte >> 4) as usize] as char);
+        encoded.push(HEX[(byte & 0x0f) as usize] as char);
     }
     Ok(encoded)
 }

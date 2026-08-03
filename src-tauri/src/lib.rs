@@ -94,7 +94,7 @@ async fn set_default_file_manager() -> Result<(), String> {
 }
 
 pub fn run() {
-    tauri::Builder::default()
+    let result = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
@@ -111,8 +111,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            let conn =
-                db::init_db(app.handle()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+            let conn = db::init_db(app.handle())?;
             app.manage(DbState {
                 conn: Mutex::new(Some(conn)),
             });
@@ -211,8 +210,12 @@ pub fn run() {
             dummy_commands::github_poll_token,
             dummy_commands::github_request_device_code,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!());
+
+    if let Err(error) = result {
+        eprintln!("error while running tauri application: {error}");
+        std::process::exit(1);
+    }
 }
 
 #[cfg(test)]

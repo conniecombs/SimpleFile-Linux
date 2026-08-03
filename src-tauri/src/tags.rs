@@ -1,4 +1,4 @@
-use crate::db::DbState;
+use crate::db::{lock_conn, DbState};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -12,7 +12,7 @@ pub struct Tag {
 
 #[tauri::command]
 pub fn get_all_tags(db: State<'_, DbState>) -> Result<Vec<Tag>, String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     let mut stmt = conn
@@ -39,7 +39,7 @@ pub fn get_all_tags(db: State<'_, DbState>) -> Result<Vec<Tag>, String> {
 
 #[tauri::command]
 pub fn create_tag(db: State<'_, DbState>, name: String, color: String) -> Result<Tag, String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     conn.execute(
@@ -60,7 +60,7 @@ pub fn update_tag(
     name: String,
     color: String,
 ) -> Result<(), String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     conn.execute(
@@ -74,7 +74,7 @@ pub fn update_tag(
 
 #[tauri::command]
 pub fn delete_tag(db: State<'_, DbState>, id: i64) -> Result<(), String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     conn.execute("DELETE FROM tags WHERE id = ?1", params![id])
@@ -85,7 +85,7 @@ pub fn delete_tag(db: State<'_, DbState>, id: i64) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_tags_for_path(db: State<'_, DbState>, path: String) -> Result<Vec<Tag>, String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     let mut stmt = conn
@@ -121,7 +121,7 @@ pub fn set_tags_for_path(
     path: String,
     tag_ids: Vec<i64>,
 ) -> Result<(), String> {
-    let mut conn_guard = db.conn.lock().unwrap();
+    let mut conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_mut().ok_or("Database not initialized")?;
 
     let tx = conn.transaction().map_err(|e| e.to_string())?;
@@ -144,7 +144,7 @@ pub fn set_tags_for_path(
 
 #[tauri::command]
 pub fn get_files_with_tag(db: State<'_, DbState>, tag_id: i64) -> Result<Vec<String>, String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     let mut stmt = conn
@@ -167,7 +167,7 @@ pub fn get_files_with_tag(db: State<'_, DbState>, tag_id: i64) -> Result<Vec<Str
 pub fn get_all_file_tags(
     db: State<'_, DbState>,
 ) -> Result<std::collections::HashMap<String, Tag>, String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     let mut stmt = conn

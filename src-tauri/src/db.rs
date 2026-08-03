@@ -1,19 +1,19 @@
-use rusqlite::{Connection, Result};
+use rusqlite::Connection;
+use std::error::Error;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use tauri::{AppHandle, Manager};
 
 pub struct DbState {
     pub conn: Mutex<Option<Connection>>,
 }
 
-pub fn init_db(app: &AppHandle) -> Result<Connection> {
-    let app_dir = app
-        .path()
-        .app_data_dir()
-        .expect("failed to get app data dir");
+type DbInitResult<T> = std::result::Result<T, Box<dyn Error>>;
 
-    std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
+pub fn init_db(app: &AppHandle) -> DbInitResult<Connection> {
+    let app_dir = app.path().app_data_dir()?;
+
+    std::fs::create_dir_all(&app_dir)?;
     let db_path: PathBuf = app_dir.join("metadata.db");
 
     let conn = Connection::open(db_path)?;
@@ -70,12 +70,18 @@ pub fn init_db(app: &AppHandle) -> Result<Connection> {
     Ok(conn)
 }
 
+pub fn lock_conn(db: &DbState) -> Result<MutexGuard<'_, Option<Connection>>, String> {
+    db.conn
+        .lock()
+        .map_err(|_| "Database lock poisoned".to_string())
+}
+
 #[tauri::command]
 pub fn get_db_setting(
     db: tauri::State<'_, DbState>,
     key: String,
 ) -> Result<Option<String>, String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     let mut stmt = conn
@@ -98,7 +104,7 @@ pub fn set_db_setting(
     key: String,
     value: String,
 ) -> Result<(), String> {
-    let conn_guard = db.conn.lock().unwrap();
+    let conn_guard = lock_conn(&db)?;
     let conn = conn_guard.as_ref().ok_or("Database not initialized")?;
 
     conn.execute(
@@ -107,4 +113,29 @@ pub fn set_db_setting(
     ).map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{lock_conn, DbState};
+    use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn lock_conn_reports_poisoned_database_mutex() {
+        let db = Arc::new(DbState {
+            conn: Mutex::new(None),
+        });
+        let poisoned = Arc::clone(&db);
+
+        let _ = std::thread::spawn(move || {
+            let _guard = poisoned.conn.lock().expect("lock test database mutex");
+            panic!("poison test database mutex");
+        })
+        .join();
+
+        match lock_conn(&db) {
+            Ok(_) => panic!("poisoned database lock should return an error"),
+            Err(error) => assert_eq!(error, "Database lock poisoned"),
+        };
+    }
 }

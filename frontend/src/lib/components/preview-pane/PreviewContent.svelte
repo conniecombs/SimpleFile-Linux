@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { convertFileSrc } from '@tauri-apps/api/core';
+  import DOMPurify from 'dompurify';
   import { marked } from 'marked';
   import hljs from 'highlight.js/lib/core';
   import bash from 'highlight.js/lib/languages/bash';
@@ -35,6 +36,12 @@
   let activePdfUrl: string | null = null;
   let renderedMarkdown: string = $state("");
   let codeHtml: string = $state("");
+
+  const markdownSanitizeOptions = {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['style'],
+    FORBID_ATTR: ['style'],
+  };
 
   const extensionLanguages: Record<string, string> = {
     bash: 'bash',
@@ -105,7 +112,10 @@
       } else if (preview?.file_type === 'text' && preview.content) {
         const ext = entry?.name.split('.').pop()?.toLowerCase();
         if (ext === 'md' || ext === 'markdown') {
-          renderedMarkdown = marked.parse(preview.content) as string;
+          renderedMarkdown = DOMPurify.sanitize(
+            marked.parse(preview.content, { async: false }),
+            markdownSanitizeOptions,
+          );
         } else {
           try {
             const language = extensionLanguages[ext || ''];
@@ -208,4 +218,3 @@
     font-family: 'Consolas', 'Courier New', monospace;
   }
 </style>
-

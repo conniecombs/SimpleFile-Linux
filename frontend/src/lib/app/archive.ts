@@ -103,7 +103,7 @@ import { localState } from './localState.svelte';
 import type { PaneId } from "../fileNavigation.js";
 import { setOverlayVisible, singleSelectedEntry, overlayById, setElementText, pathForPane, runWithProgress, refreshSecondaryPane, refreshCurrentDirectory, selectedFileEntries, showHtmlDialog, openEntryPath } from "./core.js";
 
-const archiveExtensions = new Set(['zip', 'tar', 'tgz', 'gz', 'rar']);
+const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
 
   export function extensionForPath(path: string) {
     const name = basename(path).toLowerCase();

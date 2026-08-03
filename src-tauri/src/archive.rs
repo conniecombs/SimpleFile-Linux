@@ -1524,6 +1524,19 @@ mod tests {
     }
 
     #[test]
+    fn archive_format_accepts_tar_gz_but_rejects_standalone_gz() {
+        assert_eq!(
+            archive_format_for_path(Path::new("backup.tar.gz")),
+            Some(ArchiveFormat::TarGz)
+        );
+        assert_eq!(
+            archive_format_for_path(Path::new("backup.tgz")),
+            Some(ArchiveFormat::TarGz)
+        );
+        assert_eq!(archive_format_for_path(Path::new("backup.gz")), None);
+    }
+
+    #[test]
     fn extract_zip_allows_nested_folder_that_does_not_exist_yet() {
         let root = unique_temp_dir("nested");
         let dest = root.join("out");
