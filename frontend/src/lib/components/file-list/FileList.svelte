@@ -6,6 +6,7 @@
   import type { FileListViewItem } from './FileListItems.svelte';
 
   let { pane = 'primary' }: { pane?: 'primary' | 'secondary' } = $props();
+  let listLabel = $derived(pane === 'secondary' ? 'Secondary files and folders' : 'Primary files and folders');
 
   let visibleColumns = $derived(appState.settings?.visibleColumns || ['size', 'date', 'type']);
 
@@ -108,7 +109,7 @@
   class:grid-view={appState.isGridView}
   id={pane === 'primary' ? 'file-list' : 'secondary-file-list'}
   role="listbox"
-  aria-label="Files and folders"
+  aria-label={listLabel}
   aria-multiselectable="true"
   style={`height: 100%; overflow: auto; --file-list-columns: ${fileListColumns()};`}
 >

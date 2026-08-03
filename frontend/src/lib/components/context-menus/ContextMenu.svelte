@@ -30,8 +30,8 @@
       && source.findIndex((candidate: any) => candidate.path === entry.path) === index
     );
     const selectedSingle = selectedEntries[0] || null;
-    const selectedExtension = String(selectedSingle?.extension || selectedSingle?.name?.split('.').pop() || '').toLowerCase();
-    const archiveExtensions = new Set(['zip', 'tar', 'gz', 'tgz', 'rar']);
+    const selectedExtension = archiveExtensionForName(selectedSingle?.name || '');
+    const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
     const isArchive = selectionCount === 1 && selectedSingle && !selectedSingle.is_dir && archiveExtensions.has(selectedExtension);
     const archiveFolderName = archiveExtractFolderName(selectedSingle?.name || '');
     const hasOtherPane = Boolean(appState.dualPaneEnabled && appState.secondaryPath);
@@ -88,6 +88,13 @@
     if (lower.endsWith('.tgz')) return trimmed.slice(0, -4);
     const dotIndex = trimmed.lastIndexOf('.');
     return dotIndex > 0 ? trimmed.slice(0, dotIndex) : trimmed;
+  }
+
+  function archiveExtensionForName(name: string) {
+    const lower = name.trim().toLowerCase();
+    if (lower.endsWith('.tar.gz')) return 'tar.gz';
+    const dotIndex = lower.lastIndexOf('.');
+    return dotIndex >= 0 ? lower.slice(dotIndex + 1) : '';
   }
 
   function visibleMenuEntries(sourceEntries: ContextMenuEntry[]) {

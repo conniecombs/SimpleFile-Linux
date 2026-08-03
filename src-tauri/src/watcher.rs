@@ -75,9 +75,10 @@ pub fn watch_directory(
                         timestamps.insert(path_str.clone(), now);
                         // Evict old entries to prevent unbounded growth
                         if timestamps.len() > 1000 {
-                            let cutoff =
-                                now.checked_sub(std::time::Duration::from_secs(10)).unwrap();
-                            timestamps.retain(|_, v| *v > cutoff);
+                            timestamps.retain(|_, v| {
+                                now.saturating_duration_since(*v)
+                                    <= std::time::Duration::from_secs(10)
+                            });
                         }
                     }
 

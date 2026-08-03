@@ -1615,8 +1615,6 @@ const defaultColorLabels = [
     menu.style.top = `${top}px`;
   }
 
-  const archiveExtensions = new Set(['zip', 'tar', 'tgz', 'gz', 'rar']);
-
   export function selectedFileEntries() {
     const seen = new Set<PathString>();
     const pane = appState.activePane as PaneId;
@@ -2295,4 +2293,3 @@ const defaultColorLabels = [
       showError(error);
     }
   }
-

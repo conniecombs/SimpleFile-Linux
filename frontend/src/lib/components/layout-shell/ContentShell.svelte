@@ -174,7 +174,7 @@
 </script>
 
 <div bind:this={contentArea} class:dual-pane={appState.dualPaneEnabled} class="content-area" id="content-area">
-  <div bind:this={panePrimary} class="pane primary-pane" id="pane-primary" data-pane="primary" role="region" aria-label="File list">
+  <div bind:this={panePrimary} class="pane primary-pane" id="pane-primary" data-pane="primary" role="region" aria-label="Primary file pane">
     <div class="file-container">
       <FileListHeader pane="primary" />
       <div class="quick-filter-bar" id="quick-filter-bar" style="display:none;" role="search" aria-label="Quick filter">
@@ -204,7 +204,7 @@
     onkeydown={handlePaneKeydown}
   ></button>
 
-  <div bind:this={paneSecondary} class="pane secondary-pane" id="pane-secondary" data-pane="secondary">
+  <div bind:this={paneSecondary} class="pane secondary-pane" id="pane-secondary" data-pane="secondary" role="region" aria-label="Secondary file pane">
     <div class="pane-header">
       <div class="pane-nav-buttons">
         <button class="toolbar-btn pane-nav-btn" id="btn-secondary-back" title="Go Back" aria-label="Go back in secondary pane" disabled={appState.secondaryHistoryIndex <= 0} onclick={(event) => emitSecondaryCommand(event, 'back')}>
@@ -272,6 +272,7 @@
       <button
         class="preview-close"
         id="preview-close"
+        type="button"
         aria-label="Close preview pane"
         onclick={() => {
           document.dispatchEvent(new CustomEvent('simplefile:preview-close'));

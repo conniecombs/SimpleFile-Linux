@@ -3,16 +3,16 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-fn get_smart_folders_path(app: &AppHandle) -> PathBuf {
+fn get_smart_folders_path(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
-        .expect("Failed to get app data dir")
-        .join("smart_folders.json")
+        .map(|path| path.join("smart_folders.json"))
+        .map_err(|e| format!("Failed to get app data dir: {e}"))
 }
 
 #[tauri::command]
 pub fn load_smart_folders(app: AppHandle) -> Result<Vec<SmartFolder>, String> {
-    let path = get_smart_folders_path(&app);
+    let path = get_smart_folders_path(&app)?;
     if !path.exists() {
         return Ok(Vec::new());
     }
@@ -40,11 +40,16 @@ pub fn save_smart_folder(folder: SmartFolder, app: AppHandle) -> Result<Vec<Smar
         folders.push(folder);
     }
 
-    let path = get_smart_folders_path(&app);
+    let path = get_smart_folders_path(&app)?;
 
     // Ensure parent dir exists
     if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create smart-folder directory {}: {e}",
+                parent.display()
+            )
+        })?;
     }
 
     let content = serde_json::to_string_pretty(&folders).map_err(|e| e.to_string())?;
@@ -58,7 +63,15 @@ pub fn delete_smart_folder(id: String, app: AppHandle) -> Result<Vec<SmartFolder
     let mut folders = load_smart_folders(app.clone())?;
     folders.retain(|f| f.id != id);
 
-    let path = get_smart_folders_path(&app);
+    let path = get_smart_folders_path(&app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create smart-folder directory {}: {e}",
+                parent.display()
+            )
+        })?;
+    }
     let content = serde_json::to_string_pretty(&folders).map_err(|e| e.to_string())?;
     fs::write(path, content).map_err(|e| e.to_string())?;
 
