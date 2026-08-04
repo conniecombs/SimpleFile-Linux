@@ -138,7 +138,7 @@ jobs:
         run: npm run check
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.6
         with:
           tool: cargo-audit
 
