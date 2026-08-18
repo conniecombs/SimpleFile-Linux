@@ -44,6 +44,7 @@
     { id: 'color-label', label: 'Set Color Label', action: () => document.dispatchEvent(new CustomEvent('simplefile:set-color-label')) },
     { id: 'folder-metrics', label: 'Calculate Folder Metrics', action: () => document.dispatchEvent(new CustomEvent('simplefile:folder-metrics')) },
     { id: 'disk-cleanup', label: 'Analyze Cleanup', action: () => document.dispatchEvent(new CustomEvent('simplefile:disk-cleanup')) },
+    { id: 'find-duplicates', label: 'Find Duplicate Files', action: () => document.dispatchEvent(new CustomEvent('simplefile:find-duplicates')) },
     { id: 'settings', label: 'Settings', action: () => document.dispatchEvent(new CustomEvent('simplefile:open-settings')) },
     { id: 'keyboard-help', label: 'Keyboard Shortcuts', action: () => document.dispatchEvent(new CustomEvent('simplefile:keyboard-help')) },
     { 

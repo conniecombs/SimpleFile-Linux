@@ -12,6 +12,7 @@
     | 'cut'
     | 'delete'
     | 'disk-cleanup'
+    | 'find-duplicates'
     | 'dual-pane'
     | 'folder-metrics'
     | 'forward'
@@ -272,6 +273,10 @@
           <button class="more-actions-item toolbar-btn" id="btn-disk-cleanup" title="Analyze Cleanup" aria-label="Analyze large and duplicate files in this folder" disabled={appState.cleanupInProgress} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'disk-cleanup')}>
             <span class="icon" aria-hidden="true">C</span>
             <span class="more-actions-label">Analyze Cleanup</span>
+          </button>
+          <button class="more-actions-item toolbar-btn" id="btn-find-duplicates" title="Find Duplicates (Ctrl+Shift+D)" aria-label="Find duplicate files in this folder" disabled={appState.cleanupInProgress} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'find-duplicates')}>
+            <span class="icon" aria-hidden="true">⧉</span>
+            <span class="more-actions-label">Find Duplicates</span>
           </button>
         </div>
         <div class="more-actions-divider" role="separator"></div>

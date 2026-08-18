@@ -386,6 +386,7 @@ SimpleFile-Linux/
 | `Ctrl+N` | Create folder |
 | `Ctrl+Shift+N` | Create file |
 | `Ctrl+Shift+P` | Open command palette |
+| `Ctrl+Shift+D` | Find duplicate files |
 | `F2` | Rename |
 | `F4` | Open terminal here |
 | `F5` | Refresh |

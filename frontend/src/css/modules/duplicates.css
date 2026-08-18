@@ -1,0 +1,153 @@
+/* Dedicated duplicate-file finder overlay */
+
+.duplicates-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.duplicates-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(920px, calc(100vw - 48px));
+    height: min(720px, calc(100vh - 48px));
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 48px var(--shadow-color);
+    overflow: hidden;
+}
+
+.duplicates-header,
+.duplicates-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.duplicates-footer {
+    border-bottom: 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.duplicates-header h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+}
+
+.duplicates-path {
+    margin: 0;
+    max-width: 560px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.duplicates-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.duplicates-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 10px 20px;
+    background: var(--bg-tertiary, var(--bg-primary));
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.duplicates-body {
+    flex: 1;
+    overflow: auto;
+    padding: 16px 20px 20px;
+}
+
+.duplicate-group {
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+}
+
+.duplicate-group-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.duplicate-file-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.duplicate-file-row {
+    display: grid;
+    grid-template-columns: minmax(160px, 0.9fr) minmax(180px, 1.4fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+}
+
+.duplicate-file-row:first-child {
+    border-top: 0;
+}
+
+.duplicate-file-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.duplicate-file-name,
+.duplicate-file-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.duplicate-file-path {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.duplicate-file-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-link {
+    border: 0;
+    background: transparent;
+    color: var(--accent-primary);
+    cursor: pointer;
+    padding: 0;
+    font-size: 12px;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.btn-danger {
+    background: color-mix(in srgb, var(--error-color, var(--accent-danger)) 16%, transparent);
+    color: var(--error-color, var(--accent-danger));
+    border: 1px solid color-mix(in srgb, var(--error-color, var(--accent-danger)) 40%, transparent);
+}
