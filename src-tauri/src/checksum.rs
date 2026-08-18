@@ -1,7 +1,8 @@
+use crate::sha256::Sha256 as SimpleSha256;
 use crate::utils::validate_existing_path_no_resolve;
 use md5::Md5;
 use sha1::Sha1;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
 use std::io::Read;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -34,7 +35,7 @@ pub fn compute_checksum(path: String) -> Result<serde_json::Value, String> {
 fn compute_checksums<R: Read>(reader: &mut R) -> Result<Checksums, std::io::Error> {
     let mut md5_hasher = Md5::new();
     let mut sha1_hasher = Sha1::new();
-    let mut sha256_hasher = Sha256::new();
+    let mut sha256_hasher = SimpleSha256::new();
 
     let mut buffer = [0u8; 65536];
     loop {
@@ -51,7 +52,7 @@ fn compute_checksums<R: Read>(reader: &mut R) -> Result<Checksums, std::io::Erro
     Ok(Checksums {
         md5: hex_encode(md5_hasher.finalize()),
         sha1: hex_encode(sha1_hasher.finalize()),
-        sha256: hex_encode(sha256_hasher.finalize()),
+        sha256: crate::sha256::hex_encode(sha256_hasher.finalize()),
     })
 }
 

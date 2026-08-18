@@ -10,6 +10,7 @@ import type {
   DirectoryListing,
   DriveInfo,
   DuplicateGroup,
+  DuplicateScanResult,
   FileChangeEvent,
   FileComparison,
   FileEntry,
@@ -340,6 +341,10 @@ export function diskCleanup(directory: PathString, sizeThreshold?: number): Prom
 
 export function cancelDiskCleanup(): Promise<void> {
   return invokeCommand('cancel_disk_cleanup');
+}
+
+export function findDuplicates(directory: PathString): Promise<DuplicateScanResult> {
+  return invokeCommand('find_duplicates', { directory });
 }
 
 export function getGitStatus(path: PathString): Promise<GitStatus> {

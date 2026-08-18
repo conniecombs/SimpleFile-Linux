@@ -604,6 +604,7 @@ function devDiskCleanup(directory: string, sizeThreshold?: number): CleanupResul
     .map((group) => ({
       files: group.map((entry) => entry.path).sort(),
       hash: devHexDigest(`sha256:${devTextFileContent(group[0].name)}`, 64),
+      size: Number(group[0].size || 0),
     }))
     .sort((a, b) => (a.files[0] || '').localeCompare(b.files[0] || ''));
 
@@ -961,6 +962,15 @@ async function invokeDevCommand<Name extends TauriCommandName>(
     }
     case 'cancel_disk_cleanup':
       return undefined as CommandResult<Name>;
+    case 'find_duplicates': {
+      const { directory } = args as { directory: string };
+      const cleanup = devDiskCleanup(directory);
+      return {
+        compared_files: cleanup.duplicates.reduce((count, group) => count + group.files.length, 0),
+        groups: cleanup.duplicates,
+        scanned_files: collectDevFiles(directory).length,
+      } as CommandResult<Name>;
+    }
     case 'get_all_file_tags':
       return getAllDevFileTags() as CommandResult<Name>;
     case 'get_all_tags':

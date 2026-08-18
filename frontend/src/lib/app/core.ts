@@ -2002,6 +2002,8 @@ const defaultColorLabels = [
       await showFolderMetricsFlow();
     } else if (commandId === 'ctx-cleanup') {
       await showDiskCleanupFlow();
+    } else if (commandId === 'ctx-duplicates') {
+      document.dispatchEvent(new CustomEvent('simplefile:find-duplicates'));
     } else if (commandId === 'ctx-rename') {
       await renameSelectedFlow();
     } else if (commandId === 'ctx-advanced-rename') {

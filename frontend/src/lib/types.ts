@@ -101,6 +101,13 @@ export interface SmartFolder {
 export interface DuplicateGroup {
   hash: string;
   files: PathString[];
+  size: number;
+}
+
+export interface DuplicateScanResult {
+  groups: DuplicateGroup[];
+  scanned_files: number;
+  compared_files: number;
 }
 
 export interface CleanupResult {
@@ -324,6 +331,7 @@ export interface TauriCommandMap {
   compare_files: CommandContract<{ pathA: PathString; pathB: PathString }, FileComparison>;
   disk_cleanup: CommandContract<{ directory: PathString; sizeThreshold?: number }, CleanupResult>;
   cancel_disk_cleanup: CommandContract<NoArgs, void>;
+  find_duplicates: CommandContract<{ directory: PathString }, DuplicateScanResult>;
   get_git_status: CommandContract<{ path: PathString }, GitStatus>;
 
   compute_checksum: CommandContract<{ path: PathString }, Checksums>;

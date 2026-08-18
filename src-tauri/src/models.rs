@@ -156,6 +156,14 @@ pub struct SmartFolder {
 pub struct DuplicateGroup {
     pub hash: String,
     pub files: Vec<String>,
+    pub size: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DuplicateScanResult {
+    pub groups: Vec<DuplicateGroup>,
+    pub scanned_files: u64,
+    pub compared_files: u64,
 }
 
 /// Result of a disk cleanup scan. The `large_files` vector lists files

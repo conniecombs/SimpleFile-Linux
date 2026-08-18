@@ -23,6 +23,7 @@ mod progress;
 mod rar_installer;
 
 mod search;
+mod sha256;
 mod smart_folders;
 mod state;
 mod tags;
@@ -192,6 +193,7 @@ pub fn run() {
             compare::compare_files,
             cleanup::disk_cleanup,
             cleanup::cancel_disk_cleanup,
+            cleanup::find_duplicates,
             metadata::get_image_metadata,
             show_main_window,
             smart_folders::load_smart_folders,

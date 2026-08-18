@@ -5,6 +5,7 @@
   // Keep import for migration checks
   import { renderLayoutShell } from './lib/components/layout-shell';
   import { initApp } from './lib/app/setup';
+  import DuplicatesOverlay from './lib/components/duplicates/DuplicatesOverlay.svelte';
 
   onMount(() => {
     // @ts-ignore
@@ -21,3 +22,4 @@
 ></div>
 
 {@html legacyOverlayMarkup}
+<DuplicatesOverlay />

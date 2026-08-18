@@ -8,6 +8,12 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Added
+- Dedicated Find Duplicates view with keep-one / delete-extras actions.
+- Duplicate scans now size-group, hash the first 64 KiB, then confirm with
+  full SHA-256. The SHA-256 compression function is Intel SHA-NI assembly
+  on supported x86_64 CPUs, with a `sha2` fallback elsewhere.
+
 ### Changed
 - Stopped tracking generated and local-only files: `frontend/node_modules`,
   `frontend/dist`, Tauri `src-tauri/gen` schemas, updater `.secrets`, unused

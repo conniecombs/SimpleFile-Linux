@@ -293,6 +293,8 @@ export function initApp() {
         void showFolderMetricsFlow();
       } else if (command === 'disk-cleanup') {
         void showDiskCleanupFlow();
+      } else if (command === 'find-duplicates') {
+        document.dispatchEvent(new CustomEvent('simplefile:find-duplicates'));
       } else if (command === 'view-toggle') {
         appState.isGridView = !appState.isGridView;
         appState.settings = { ...appState.settings, defaultView: appState.isGridView ? 'grid' : 'list' };
@@ -802,6 +804,12 @@ export function initApp() {
       if (event.ctrlKey && event.shiftKey && key === 'p') {
         event.preventDefault();
         appState.commandPaletteVisible = true;
+        return;
+      }
+
+      if (event.ctrlKey && event.shiftKey && key === 'd') {
+        event.preventDefault();
+        document.dispatchEvent(new CustomEvent('simplefile:find-duplicates'));
         return;
       }
 
