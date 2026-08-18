@@ -335,7 +335,6 @@ SimpleFile-Linux/
 |   |-- src/
 |       |-- main.ts
 |       |-- App.svelte
-|       |-- app.css
 |       |-- css/
 |       |-- lib/
 |           |-- api.ts

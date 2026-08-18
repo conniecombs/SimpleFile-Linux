@@ -8,6 +8,11 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Changed
+- Stopped tracking generated and local-only files: `frontend/node_modules`,
+  `frontend/dist`, Tauri `src-tauri/gen` schemas, updater `.secrets`, unused
+  Windows/iOS/Android icon sets, and leftover unused source/docs.
+
 ### Added
 - Rubber-band drag-to-select in list and grid views, including dual-pane,
   additive Shift/Ctrl selection, and auto-scroll while dragging.
