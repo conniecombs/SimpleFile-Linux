@@ -140,17 +140,14 @@ impl Sha256 {
 
     fn compress_block(&mut self, block: &[u8; BLOCK_SIZE]) {
         #[cfg(target_arch = "x86_64")]
-        {
-            if self.backend == Sha256Backend::ShaNi {
-                unsafe {
-                    simplefile_sha256_compress_sha_ni(self.state.as_mut_ptr(), block.as_ptr());
-                }
+        if self.backend == Sha256Backend::ShaNi {
+            unsafe {
+                simplefile_sha256_compress_sha_ni(self.state.as_mut_ptr(), block.as_ptr());
             }
             return;
         }
 
-        // Software hashing uses the sha2 crate and never calls compress_block.
-        // SHA-NI is also unavailable off x86_64, so this path is unused.
+        // Software hashing uses the sha2 crate and never reaches this function.
         let _ = block;
     }
 }
