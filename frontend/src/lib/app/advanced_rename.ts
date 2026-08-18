@@ -1,541 +1,253 @@
+import { batchRename, getImageMetadata, listDirectory } from '../api';
+import {
+  analyzeRenameSelection,
+  buildRenamePlans,
+  cameraFromExif,
+  dateTakenFromExif,
+  isImageEntry,
+  settingsNeedImageContext,
+  type AdvancedRenameFileContext,
+  type AdvancedRenamePlan,
+  type AdvancedRenameSettings,
+  type RenameSource,
+} from '../advancedRenameEngine';
+import { getParentPath, joinPath, sortEntries } from '../coreFileManager';
+import { showUndoableSuccess } from '../components/toasts';
+import type { FileEntry, PathString, RenameRequest } from '../types';
+// @ts-ignore
+import { state as appState } from './state.svelte.ts';
+import {
+  pushUndoEntry,
+  refreshCurrentDirectory,
+  refreshSecondaryPane,
+  runWithProgress,
+  undoLastFlow,
+} from './core.js';
 
-import { onMount } from 'svelte';
-  // @ts-ignore
-  import { addBookmark, addRecentLocation, clearRecentLocations, loadBookmarks, loadRecentLocations, loadSettings, loadTabs, removeBookmark, saveSettings, saveTabs, state as appState } from './state.svelte.ts';
-  // @ts-ignore
-  import { resolveStartupLocation } from './startup-location.ts';
-  import {
-    batchRename,
-    calculateFolderSize,
-    cancelOperation,
-    compareFiles,
-    computeChecksum,
-    countFolderItems,
-    copyEntryResolved,
-    copyWithProgress,
-    createArchive,
-    createDirectory,
-    createFile,
-    createTag,
-    deleteEntry,
-    deleteSmartFolder,
-    diskCleanup,
-    extractArchive,
-    getAllFileTags,
-    getAllTags,
-    getEntryInfo,
-    getImageMetadata,
-    getHomeDir,
-    listDirectory,
-    listDrives,
-    listSubdirectories,
-    listArchive,
-    loadSmartFolders,
-    moveEntryResolved,
-    moveWithProgress,
-    moveToTrash,
-    onExternalFileDrop,
-    onExternalFileDropHover,
-    onExternalFileDropLeave,
-    onFileChange,
-    onOperationProgress,
-    openFile,
-    openFileWith,
-    openTerminal,
-    readFilePreview,
-    renameEntry,
-    searchFiles,
-    selectDirectory,
-    cancelSearch,
-    checkForUpdate,
-    checkRarInstalled,
-    getAppAboutInfo,
-    getAppVersion,
-    installRar,
-    installUpdate,
-    saveSmartFolder,
-    setTagsForPath,
-    watchDirectory,
-    unwatchDirectory,
-  } from '../api';
-  import {
-    basename,
-    createFallbackDriveForPath,
-    fileType,
-    formatModified,
-    formatFileSize,
-    getParentPath,
-    isValidFileName,
-    joinPath,
-    visibleEntries,
-  } from '../coreFileManager';
-  import { renderAdvancedSearchDialog } from '../searchDialog';
-  import { getRecentSearches, rememberRecentSearch } from '../searchStorage';
-  import { getOpenWithSuggestions, rememberOpenWithApplication } from '../localCommandStorage';
-  import { readAdvancedSearchOptions, searchResultToFileEntry, toSearchCommandOptions, type SearchWorkflowOptions } from '../searchOptions';
-  import { renderAdvancedRenamePreview } from '../components/advanced-rename-preview';
-  import { renderArchiveContents, renderArchiveInfo, renderCreateArchiveBody } from '../components/archive-surfaces';
-  import { clearSearchResultsHeader, renderSearchResultsHeader } from '../components/search-chrome';
-  import { renderContextMenu } from '../components/context-menus';
-  import { clearQuickLook, renderQuickLook } from '../components/quick-look';
-  import { renderStatusBar } from '../components/status-bar';
-  import { clearSettingsBody, renderSettingsBody } from '../components/settings-body';
-  import { showError, showSuccess } from '../components/toasts';
+export type CollectedRenameTarget = {
+  entry: FileEntry;
+  parentPath: PathString;
+  context?: AdvancedRenameFileContext;
+};
 
-  import { legacyOverlayMarkup } from '../components/legacy-overlays';
-  import { renderLayoutShell } from '../components/layout-shell';
-  import type {
-    ArchiveFormat,
-    ClipboardAction,
-    CleanupResult,
-    ConflictAction,
-    FileEntry,
-    NativeFileDropEventPayload,
-    OperationId,
-    PathString,
-    ProgressUpdate,
-    RenameRequest,
-    SearchOptions,
-    SmartFolder,
-    TransferResult,
-  } from '../types';
-import { localState } from './localState.svelte';
-import { extensionForPath } from "./archive.js";
-import { setElementText, setOverlayVisible, runWithProgress, refreshCurrentDirectory, applyPersistedViewSettings, showDialog, overlayById, refreshSecondaryPane, selectedFileEntries } from "./core.js";
+function selectedSet(): Set<PathString> {
+  return (appState.activePane === 'secondary'
+    ? appState.secondarySelectedEntries
+    : appState.selectedEntries) as Set<PathString>;
+}
 
-  type AdvancedRenameTarget = {
-    entry: FileEntry;
-    index: number;
-    parentPath: PathString;
-  };
+function entriesForActivePane(): FileEntry[] {
+  return (appState.activePane === 'secondary'
+    ? appState.secondaryFilteredEntries
+    : appState.filteredEntries) as FileEntry[];
+}
 
-  export function inputChecked(id: string) {
-    return Boolean((document.getElementById(id) as HTMLInputElement | null)?.checked);
-  }
+function fallbackParent(): PathString {
+  return (appState.activePane === 'secondary' ? appState.secondaryPath : appState.currentPath) || '';
+}
 
-  export function inputString(id: string, fallback = '') {
-    return (document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null)?.value ?? fallback;
-  }
+export function selectedRenameEntries(): FileEntry[] {
+  const selected = selectedSet();
+  const seen = new Set<PathString>();
+  const fromView = entriesForActivePane().filter((entry) => selected.has(entry.path));
+  const extras = ((appState.activePane === 'secondary' ? appState.secondaryEntries : appState.entries) as FileEntry[])
+    .filter((entry) => selected.has(entry.path) && !fromView.some((item) => item.path === entry.path));
 
-  export function splitFileName(name: string) {
-    if (name.toLowerCase().endsWith('.tar.gz')) {
-      return {
-        base: name.slice(0, -7),
-        ext: name.slice(-6),
-      };
-    }
-    const dotIndex = name.lastIndexOf('.');
-    if (dotIndex <= 0) {
-      return { base: name, ext: '' };
-    }
+  return [...fromView, ...extras].filter((entry) => {
+    if (seen.has(entry.path)) return false;
+    seen.add(entry.path);
+    return true;
+  });
+}
 
-    return {
-      base: name.slice(0, dotIndex),
-      ext: name.slice(dotIndex + 1),
-    };
-  }
+export function selectionAnalysis(entries: RenameSource[] = selectedRenameEntries()) {
+  return analyzeRenameSelection(entries);
+}
 
-  export function joinFileName(base: string, ext: string) {
-    return ext ? `${base}.${ext.replace(/^\./, '')}` : base;
-  }
+export async function collectAdvancedRenameTargets(
+  settings: AdvancedRenameSettings,
+): Promise<CollectedRenameTarget[]> {
+  const selected = selectedRenameEntries();
+  const includeRecursive = settings.includeRecursive;
+  const includeHidden = settings.includeHidden;
+  const renameFolders = settings.renameFolders;
+  const sortBy = appState.sortBy || 'name';
+  const sortAsc = appState.sortAsc !== false;
+  const targets: CollectedRenameTarget[] = [];
+  const seen = new Set<PathString>();
 
-  export function transformNamePart(name: string, transform: (value: string) => string) {
-    const applyPart = inputString('adv-apply-part', 'full');
-    const { base, ext } = splitFileName(name);
+  async function addEntry(entry: FileEntry, explicitlySelected: boolean): Promise<void> {
+    if (seen.has(entry.path)) return;
+    if (!includeHidden && entry.name.startsWith('.')) return;
+    seen.add(entry.path);
 
-    if (applyPart === 'base') {
-      return joinFileName(transform(base), ext);
-    }
-
-    if (applyPart === 'extension') {
-      return joinFileName(base, transform(ext).replace(/^\./, ''));
-    }
-
-    return transform(name);
-  }
-
-  export function replaceWithOptions(value: string, find: string, replacement: string, regex: boolean, caseSensitive: boolean) {
-    if (!find) return value;
-
-    if (regex) {
-      const flags = caseSensitive ? 'g' : 'gi';
-      return value.replace(new RegExp(find, flags), replacement);
-    }
-
-    if (caseSensitive) {
-      return value.split(find).join(replacement);
-    }
-
-    return value.replace(new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), replacement);
-  }
-
-  export function capitalizeValue(value: string, mode: string) {
-    if (mode === 'upper') return value.toUpperCase();
-    if (mode === 'lower') return value.toLowerCase();
-    if (mode === 'words' || mode === 'title') {
-      return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
-    }
-    if (mode === 'sentence') {
-      const lower = value.toLowerCase();
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    }
-    return value.charAt(0).toUpperCase() + value.slice(1);
-  }
-
-  export function insertValue(name: string, value: string, position: string, indexValue: number) {
-    if (!value) return name;
-    const { base, ext } = splitFileName(name);
-
-    if (position === 'prefix') return `${value}${name}`;
-    if (position === 'suffix') return `${name}${value}`;
-    if (position === 'before-ext') return joinFileName(`${base}${value}`, ext);
-
-    const index = Math.max(0, Math.min(name.length, indexValue));
-    return `${name.slice(0, index)}${value}${name.slice(index)}`;
-  }
-
-  export function numberedValue(name: string, numberText: string, position: string, separator: string) {
-    const { base, ext } = splitFileName(name);
-    if (position === 'replace') return joinFileName(numberText, ext);
-    if (position === 'prefix') return `${numberText}${separator}${name}`;
-    if (position === 'suffix') return `${name}${separator}${numberText}`;
-    return joinFileName(`${base}${separator}${numberText}`, ext);
-  }
-
-  export function sanitizeFileName(name: string, replacement: string) {
-    return name.replace(/[/\u0000]/g, replacement || '_').trim();
-  }
-
-  export function templateName(pattern: string, entry: FileEntry, index: number) {
-    const { base, ext } = splitFileName(entry.name);
-    const parent = basename(getParentPath(entry.path) || '');
-    const now = new Date();
-    const pad = (value: number) => String(value).padStart(2, '0');
-    let start = Number(inputString('adv-number-start', '1'));
-    if (isNaN(start)) start = 1;
-    let step = Number(inputString('adv-number-step', '1'));
-    if (isNaN(step) || step === 0) step = 1;
-    let width = Number(inputString('adv-number-pad', '3'));
-    if (isNaN(width) || width < 1) width = 3;
-    const n = String(start + index * step).padStart(width, '0');
-
-    return [
-      ['{base}', base],
-      ['{ext}', ext],
-      ['{name}', entry.name],
-      ['{parent}', parent],
-      ['{n}', n],
-      ['{yyyy}', String(now.getFullYear())],
-      ['{mm}', pad(now.getMonth() + 1)],
-      ['{dd}', pad(now.getDate())],
-      ['{hh}', pad(now.getHours())],
-      ['{min}', pad(now.getMinutes())],
-      ['{ss}', pad(now.getSeconds())],
-      ['{date}', `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`],
-      ['{time}', `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`],
-    ].reduce((next, [token, value]) => next.split(token).join(value), pattern);
-  }
-
-  export function passesAdvancedFilter(entry: FileEntry) {
-    if (!inputChecked('adv-filter-enabled')) return true;
-
-    const filterText = inputString('adv-filter-text').trim();
-    const extensions = inputString('adv-filter-extensions')
-      .split(',')
-      .map((value) => value.trim().replace(/^\./, '').toLowerCase())
-      .filter(Boolean);
-
-    let matchesName = true;
-    if (filterText) {
-      if (inputChecked('adv-filter-regex')) {
-        const flags = inputChecked('adv-filter-case') ? '' : 'i';
-        matchesName = new RegExp(filterText, flags).test(entry.name);
-      } else if (inputChecked('adv-filter-case')) {
-        matchesName = entry.name.includes(filterText);
-      } else {
-        matchesName = entry.name.toLowerCase().includes(filterText.toLowerCase());
-      }
-    }
-
-    if (inputChecked('adv-filter-invert')) {
-      matchesName = !matchesName;
-    }
-
-    if (extensions.length > 0) {
-      const { ext } = splitFileName(entry.name);
-      matchesName = matchesName && extensions.includes(ext.toLowerCase());
-    }
-
-    return matchesName;
-  }
-
-  export function buildAdvancedName(entry: FileEntry, index: number) {
-    let name = entry.name;
-
-    if (inputChecked('adv-template-enabled')) {
-      const rendered = templateName(inputString('adv-template-pattern', '{base}_{n}'), entry, index);
-      const keepExtension = inputChecked('adv-template-keep-ext');
-      const { ext } = splitFileName(entry.name);
-      name = keepExtension && ext && !rendered.toLowerCase().endsWith(`.${ext.toLowerCase()}`)
-        ? joinFileName(rendered, ext)
-        : rendered;
-    }
-
-    if (inputChecked('adv-remove-enabled')) {
-      name = transformNamePart(name, (value) => replaceWithOptions(
-        value,
-        inputString('adv-remove-string'),
-        '',
-        inputChecked('adv-remove-regex'),
-        inputChecked('adv-remove-case'),
-      ));
-    }
-
-    if (inputChecked('adv-replace-enabled')) {
-      name = transformNamePart(name, (value) => replaceWithOptions(
-        value,
-        inputString('adv-replace-find'),
-        inputString('adv-replace-with'),
-        inputChecked('adv-replace-regex'),
-        inputChecked('adv-replace-case'),
-      ));
-    }
-
-    if (inputChecked('adv-trim-enabled')) {
-      const mode = inputString('adv-trim-mode', 'both');
-      name = transformNamePart(name, (value) => {
-        let next = value;
-        if (mode === 'start' || mode === 'both') next = next.replace(/^\s+/, '');
-        if (mode === 'end' || mode === 'both') next = next.replace(/\s+$/, '');
-        if (inputChecked('adv-trim-collapse')) next = next.replace(/\s+/g, ' ');
-        return next;
-      });
-    }
-
-    if (inputChecked('adv-add-enabled')) {
-      name = insertValue(
-        name,
-        inputString('adv-add-string'),
-        inputString('adv-add-position', 'prefix'),
-        Number(inputString('adv-add-index', '0')) || 0,
-      );
-    }
-
-    if (inputChecked('adv-capitalize-enabled')) {
-      name = transformNamePart(name, (value) => capitalizeValue(value, inputString('adv-capitalize-mode', 'first')));
-    }
-
-    if (inputChecked('adv-separator-enabled')) {
-      const mode = inputString('adv-separator-mode', 'spaces-to-dashes');
-      name = transformNamePart(name, (value) => {
-        let next = value;
-        if (mode === 'spaces-to-dashes') next = next.replace(/\s/g, '-');
-        if (mode === 'spaces-to-underscores') next = next.replace(/\s/g, '_');
-        if (mode === 'underscores-to-spaces') next = next.replace(/_/g, ' ');
-        if (mode === 'dashes-to-spaces') next = next.replace(/-/g, ' ');
-        if (mode === 'dots-to-spaces') next = next.replace(/\./g, ' ');
-        if (inputChecked('adv-separator-collapse')) {
-          next = next.replace(/([ _.-])\1+/g, '$1');
-        }
-        return next;
-      });
-    }
-
-    if (inputChecked('adv-number-enabled')) {
-      let start = Number(inputString('adv-number-start', '1'));
-      if (isNaN(start)) start = 1;
-      let step = Number(inputString('adv-number-step', '1'));
-      if (isNaN(step) || step === 0) step = 1;
-      let width = Number(inputString('adv-number-pad', '3'));
-      if (isNaN(width) || width < 1) width = 3;
-      const numberText = String(start + index * step).padStart(width, '0');
-      name = numberedValue(
-        name,
-        numberText,
-        inputString('adv-number-position', 'suffix'),
-        inputString('adv-number-separator', '_'),
-      );
-    }
-
-    if (inputChecked('adv-extension-enabled')) {
-      const { base, ext } = splitFileName(name);
-      const mode = inputString('adv-extension-mode', 'lower');
-      if (mode === 'lower') name = joinFileName(base, ext.toLowerCase());
-      if (mode === 'upper') name = joinFileName(base, ext.toUpperCase());
-      if (mode === 'set') name = joinFileName(base, inputString('adv-extension-custom').replace(/^\./, ''));
-      if (mode === 'remove') name = base;
-    }
-
-    if (inputChecked('adv-sanitize-enabled')) {
-      name = sanitizeFileName(name, inputString('adv-sanitize-replacement', '_'));
-    }
-
-    return name;
-  }
-
-  export async function collectAdvancedRenameTargets() {
-    const selectedEntries = selectedFileEntries();
-    const includeRecursive = inputChecked('adv-scope-recursive');
-    const includeHidden = inputChecked('adv-scope-hidden');
-    const targets: AdvancedRenameTarget[] = [];
-    const seen = new Set<PathString>();
-
-    async function addEntry(entry: FileEntry, index: number) {
-      if (seen.has(entry.path)) return;
-      if (!includeHidden && entry.name.startsWith('.')) return;
-      seen.add(entry.path);
+    if (!entry.is_dir || renameFolders) {
       targets.push({
         entry,
-        index,
-        parentPath: getParentPath(entry.path) || appState.currentPath,
+        parentPath: getParentPath(entry.path) || fallbackParent(),
       });
+    } else if (!includeRecursive && explicitlySelected) {
+      // Selected folder with neither recursive nor rename-folders stays out of
+      // the target list; the dialog explains how to include it.
+    }
 
-      if (includeRecursive && entry.is_dir) {
-        try {
-          const listing = await listDirectory(entry.path);
-          for (const child of listing.entries) {
-            await addEntry(child, targets.length);
-          }
-        } catch {
-          // Keep the dialog usable even when one subtree cannot be read.
+    if (includeRecursive && entry.is_dir) {
+      try {
+        const listing = await listDirectory(entry.path);
+        const children = sortEntries(listing.entries, sortBy, sortAsc);
+        for (const child of children) {
+          await addEntry(child, false);
         }
+      } catch {
+        // Keep the dialog usable even when one subtree cannot be read.
       }
     }
-
-    for (const entry of selectedEntries) {
-      await addEntry(entry, targets.length);
-    }
-
-    return targets;
   }
 
-  export async function refreshAdvancedRenamePreview() {
-    const preview = document.getElementById('adv-rename-preview');
-    const overlay = overlayById('advanced-rename-overlay');
-    if (!preview || !overlay?.classList.contains('visible')) return;
+  for (const entry of selected) {
+    await addEntry(entry, true);
+  }
 
-    renderAdvancedRenamePreview(preview, {
-      message: 'Building preview...',
-      mode: 'loading',
-    });
+  return targets;
+}
 
-    try {
-      localState.advancedRenameTargets = await collectAdvancedRenameTargets();
-      const duplicateKeys = new Map<string, number>();
-      localState.advancedRenamePlans = localState.advancedRenameTargets
-        .filter(({ entry }) => passesAdvancedFilter(entry))
-        .map(({ entry, index, parentPath }) => {
-          const newName = buildAdvancedName(entry, index);
-          const key = `${parentPath}\0${newName}`;
-          duplicateKeys.set(key, (duplicateKeys.get(key) || 0) + 1);
-          return {
-            changed: newName !== entry.name,
-            detail: parentPath,
-            newName,
-            oldName: entry.name,
-            parentPath,
-            path: entry.path,
-          };
-        })
-        .map((plan) => {
-          const key = `${plan.parentPath}\0${plan.newName}`;
-          let error: string | null = null;
-          if (!plan.newName || plan.newName === '.' || plan.newName === '..') {
-            error = 'Invalid empty file name';
-          } else if (!isValidFileName(plan.newName)) {
-            error = 'Invalid file name';
-          } else if ((duplicateKeys.get(key) || 0) > 1) {
-            error = 'Duplicate target name';
-          }
-          return { ...plan, error };
+function tagsForPath(path: PathString): { tags: string[]; colorLabel: string } {
+  const fileTags = (appState.fileTags || {}) as Record<string, { color?: string; label?: string } | string>;
+  const raw = fileTags[path];
+  if (!raw) return { tags: [], colorLabel: '' };
+  if (typeof raw === 'string') return { tags: [raw], colorLabel: raw };
+  const label = raw.label || raw.color || '';
+  return { tags: label ? [label] : [], colorLabel: label };
+}
+
+export async function loadFileContexts(
+  targets: CollectedRenameTarget[],
+  settings: AdvancedRenameSettings,
+): Promise<CollectedRenameTarget[]> {
+  const needImages = settingsNeedImageContext(settings);
+  const imageTargets = needImages
+    ? targets.filter((target) => isImageEntry(target.entry))
+    : [];
+
+  const contexts = new Map<string, AdvancedRenameFileContext>();
+  const concurrency = 4;
+  let cursor = 0;
+
+  async function worker(): Promise<void> {
+    while (cursor < imageTargets.length) {
+      const index = cursor;
+      cursor += 1;
+      const target = imageTargets[index];
+      try {
+        const metadata = await getImageMetadata(target.entry.path);
+        const exif: Record<string, string> = {};
+        for (const pair of metadata.exif || []) {
+          if (pair && pair.length >= 2) exif[pair[0]] = pair[1];
+        }
+        contexts.set(target.entry.path, {
+          width: metadata.width,
+          height: metadata.height,
+          exif,
+          camera: cameraFromExif(exif),
+          dateTaken: dateTakenFromExif(exif),
         });
-
-      const rows = localState.advancedRenamePlans.slice(0, 500).map((plan) => ({
-        changed: plan.changed,
-        detail: plan.detail,
-        error: plan.error,
-        newName: plan.newName,
-        oldName: plan.oldName,
-      }));
-
-      renderAdvancedRenamePreview(preview, {
-        extraCount: Math.max(0, localState.advancedRenamePlans.length - rows.length),
-        limit: 500,
-        message: localState.advancedRenamePlans.length === 0 ? 'No matching files.' : '',
-        mode: localState.advancedRenamePlans.length === 0 ? 'empty' : 'rows',
-        rows,
-        totalRows: localState.advancedRenamePlans.length,
-      });
-
-      setElementText('adv-rename-summary', `${localState.advancedRenamePlans.length} target${localState.advancedRenamePlans.length === 1 ? '' : 's'} ready.`);
-    } catch (error) {
-      renderAdvancedRenamePreview(preview, {
-        message: error instanceof Error ? error.message : String(error),
-        mode: 'error',
-      });
+      } catch {
+        contexts.set(target.entry.path, {});
+      }
     }
   }
 
-  export function updateAdvancedRenameOperationClasses() {
-    for (const element of document.querySelectorAll<HTMLElement>('.adv-rename-op')) {
-      const checkbox = element.querySelector<HTMLInputElement>('input[type="checkbox"][id$="-enabled"]');
-      element.classList.toggle('op-enabled', Boolean(checkbox?.checked));
-    }
+  if (imageTargets.length > 0) {
+    await Promise.all(Array.from({ length: Math.min(concurrency, imageTargets.length) }, () => worker()));
   }
 
-  export async function showAdvancedRenameFlow() {
-    if (selectedFileEntries().length === 0) {
-      showError('Select one or more items to rename.');
-      return;
-    }
+  return targets.map((target) => {
+    const tags = tagsForPath(target.entry.path);
+    return {
+      ...target,
+      context: {
+        ...(contexts.get(target.entry.path) || {}),
+        tags: tags.tags,
+        colorLabel: tags.colorLabel,
+      },
+    };
+  });
+}
 
-    const overlay = overlayById('advanced-rename-overlay');
-    if (!overlay) {
-      showError('Advanced Rename is unavailable.');
-      return;
-    }
+export function previewAdvancedRename(
+  targets: CollectedRenameTarget[],
+  settings: AdvancedRenameSettings,
+): { plans: AdvancedRenamePlan[]; filterError: string | null } {
+  return buildRenamePlans(targets, settings);
+}
 
-    overlay.classList.add('visible');
-    updateAdvancedRenameOperationClasses();
-    overlay.querySelector<HTMLElement>('#adv-rename-close')?.focus();
-    await refreshAdvancedRenamePreview();
+function toRequest(plan: AdvancedRenamePlan): RenameRequest {
+  return { path: plan.path, new_name: plan.newName };
+}
+
+function undoRequest(plan: AdvancedRenamePlan): RenameRequest {
+  return {
+    path: joinPath(plan.parentPath, plan.newName),
+    new_name: plan.oldName,
+  };
+}
+
+export async function applyAdvancedRenamePlans(plans: AdvancedRenamePlan[]): Promise<number> {
+  const invalid = plans.find((plan) => plan.error);
+  if (invalid) {
+    throw new Error(invalid.error || 'Resolve invalid rename targets before applying.');
   }
 
-  export function closeAdvancedRenameFlow() {
-    setOverlayVisible('advanced-rename-overlay', false);
-    localState.advancedRenamePlans = [];
-    localState.advancedRenameTargets = [];
+  const changed = plans.filter((plan) => plan.changed);
+  if (changed.length === 0) {
+    throw new Error('No names would change.');
   }
 
-  export async function applyAdvancedRenameFlow() {
-    await refreshAdvancedRenamePreview();
-    const invalid = localState.advancedRenamePlans.find((plan) => plan.error);
-    if (invalid) {
-      showError(invalid.error || 'Resolve invalid rename targets before applying.');
-      return;
-    }
+  const files = changed.filter((plan) => !plan.isDir);
+  const folders = changed
+    .filter((plan) => plan.isDir)
+    .sort((left, right) => right.path.length - left.path.length);
 
-    const requests: RenameRequest[] = localState.advancedRenamePlans
-      .filter((plan) => plan.changed)
-      .map((plan) => ({
-        new_name: plan.newName,
-        path: plan.path,
-      }));
-
-    if (requests.length === 0) {
-      showError('No names would change.');
-      return;
+  await runWithProgress('Renaming Items', `${changed.length} item${changed.length === 1 ? '' : 's'}`, async () => {
+    if (files.length > 0) {
+      await batchRename(files.map(toRequest));
     }
-
-    try {
-      await runWithProgress('Renaming Items', `${requests.length} item${requests.length === 1 ? '' : 's'}`, async () => {
-        await batchRename(requests);
-      });
-      showSuccess(`Renamed ${requests.length} item${requests.length === 1 ? '' : 's'}`);
-      closeAdvancedRenameFlow();
-      if (appState.activePane === 'secondary') await refreshSecondaryPane();
-      else await refreshCurrentDirectory();
-    } catch (error) {
-      showError(error);
+    for (const folder of folders) {
+      await batchRename([toRequest(folder)]);
     }
-  }
+  });
+
+  pushUndoEntry({
+    description: `Rename ${changed.length} item${changed.length === 1 ? '' : 's'}`,
+    undo: async () => {
+      for (const folder of [...folders].reverse()) {
+        await batchRename([undoRequest(folder)]);
+      }
+      if (files.length > 0) {
+        await batchRename(files.map(undoRequest));
+      }
+    },
+    redo: async () => {
+      if (files.length > 0) {
+        await batchRename(files.map(toRequest));
+      }
+      for (const folder of folders) {
+        await batchRename([toRequest(folder)]);
+      }
+    },
+  });
+
+  showUndoableSuccess(
+    `Renamed ${changed.length} item${changed.length === 1 ? '' : 's'}`,
+    () => {
+      void undoLastFlow();
+    },
+  );
+
+  if (appState.activePane === 'secondary') await refreshSecondaryPane();
+  else await refreshCurrentDirectory();
+
+  return changed.length;
+}
+
+

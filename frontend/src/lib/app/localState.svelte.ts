@@ -10,7 +10,5 @@ export const localState = $state({
   undoStack: [] as any[],
   redoStack: [] as any[],
   isSettingColorLabel: false,
-  MAX_UNDO_STACK: 50,
-  advancedRenameTargets: [] as any[],
-  advancedRenamePlans: [] as any[]
+  MAX_UNDO_STACK: 50
 });

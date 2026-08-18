@@ -27,6 +27,7 @@ export interface FileEntry {
   uid?: number;
   gid?: number;
   symlink_target?: string;
+  git_status?: string;
 }
 
 export interface DirectoryListing {

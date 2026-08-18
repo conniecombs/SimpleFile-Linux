@@ -4,6 +4,16 @@
    operations plus a live preview panel.
    ============================================================================ */
 
+.advanced-rename-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+}
+
 .advanced-rename-modal {
     width: 1000px; /* Widened for split layout */
     max-width: 95vw;
@@ -42,7 +52,23 @@
 .adv-rename-summary {
     font-size: 13px;
     color: var(--text-muted);
+    margin: 0 0 4px;
+}
+
+.adv-rename-context {
+    font-size: 12px;
+    color: var(--text-secondary);
     margin: 0 0 12px;
+}
+
+.adv-inline-note {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.adv-rename-op.op-disabled {
+    opacity: 0.55;
 }
 
 .adv-rename-scope {
@@ -125,7 +151,8 @@
     background: var(--bg-secondary);
 }
 
-.adv-rename-op.op-enabled .adv-op-body {
+.adv-rename-op.op-enabled .adv-op-body,
+.adv-rename-op.op-expanded .adv-op-body {
     display: flex;
 }
 
