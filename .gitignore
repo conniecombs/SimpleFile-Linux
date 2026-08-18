@@ -3,49 +3,54 @@
 /src-tauri/target/
 /src-tauri/google-oauth-client-id.txt
 
+# Generated Tauri capability/schema files
+/src-tauri/gen/
+
 # Node
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Build artifacts
+# Frontend build and caches
 dist/
 build/
 /frontend/dist/
+/frontend/.vite/
+*.tsbuildinfo
+.eslintcache
+.svelte-kit/
 
-# IDE
+# IDE / editor
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+*.orig
+*.rej
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Tauri
 /src-tauri/WixTools/
-/src-tauri/target/
 
-# Local release/update signing secrets. Never commit updater private keys.
+# Local release/update signing secrets. Never commit updater keys.
 /.secrets/
 /src-tauri/.secrets/
 *.key
+*.key.pub
 .env
 .env.*
-
-# Package manager logs
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Vite/Svelte caches
-.eslintcache
-.svelte-kit/
-
-# Tauri configuration backups
-*-v1.backup
+!.env.example
 
 # Flatpak
 .flatpak-builder/
 build-dir/
+
+# Tauri configuration backups
+*-v1.backup
