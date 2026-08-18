@@ -4,8 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 const BLOCK_SIZE: usize = 64;
 const DIGEST_SIZE: usize = 32;
 const INITIAL_STATE: [u32; 8] = [
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
-    0x5be0cd19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
 ];
 
 #[cfg(target_arch = "x86_64")]
@@ -141,15 +140,18 @@ impl Sha256 {
 
     fn compress_block(&mut self, block: &[u8; BLOCK_SIZE]) {
         #[cfg(target_arch = "x86_64")]
-        if self.backend == Sha256Backend::ShaNi {
-            unsafe {
-                simplefile_sha256_compress_sha_ni(self.state.as_mut_ptr(), block.as_ptr());
+        {
+            if self.backend == Sha256Backend::ShaNi {
+                unsafe {
+                    simplefile_sha256_compress_sha_ni(self.state.as_mut_ptr(), block.as_ptr());
+                }
             }
             return;
         }
 
+        // Software hashing uses the sha2 crate and never calls compress_block.
+        // SHA-NI is also unavailable off x86_64, so this path is unused.
         let _ = block;
-        unreachable!("SHA-NI backend selected without an assembly implementation");
     }
 }
 
@@ -244,7 +246,10 @@ mod tests {
         let odd = [0u8; 63];
         let expected = hex_encode(hash_bytes_with(&odd, Sha256Backend::Software));
         if selected_backend() == Sha256Backend::ShaNi {
-            assert_eq!(hex_encode(hash_bytes_with(&odd, Sha256Backend::ShaNi)), expected);
+            assert_eq!(
+                hex_encode(hash_bytes_with(&odd, Sha256Backend::ShaNi)),
+                expected
+            );
         }
     }
 

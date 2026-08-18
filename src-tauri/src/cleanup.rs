@@ -82,7 +82,14 @@ pub async fn find_duplicates(
 
     let result = match tokio::task::spawn_blocking(move || {
         scan_duplicates(&root, &cancel, |current, total, item| {
-            emit_named_progress(&app, DUPLICATES_OPERATION_ID, "duplicates", current, total, item);
+            emit_named_progress(
+                &app,
+                DUPLICATES_OPERATION_ID,
+                "duplicates",
+                current,
+                total,
+                item,
+            );
         })
     })
     .await
@@ -96,7 +103,14 @@ pub async fn find_duplicates(
 }
 
 fn emit_cleanup_progress(app: &AppHandle, current: u64, total: u64, current_item: &str) {
-    emit_named_progress(app, CLEANUP_OPERATION_ID, "cleanup", current, total, current_item);
+    emit_named_progress(
+        app,
+        CLEANUP_OPERATION_ID,
+        "cleanup",
+        current,
+        total,
+        current_item,
+    );
 }
 
 fn emit_named_progress(
@@ -247,7 +261,14 @@ where
             continue;
         }
 
-        let groups = hash_same_size_files(size, files, cancel, progress, &mut hashed_files, duplicate_candidates)?;
+        let groups = hash_same_size_files(
+            size,
+            files,
+            cancel,
+            progress,
+            &mut hashed_files,
+            duplicate_candidates,
+        )?;
         duplicates.extend(groups);
     }
 
@@ -288,7 +309,14 @@ where
     let prefix_groups = if size <= PREFIX_HASH_BYTES {
         HashMap::from([(String::new(), files)])
     } else {
-        group_by_hash(files, Some(PREFIX_HASH_BYTES), cancel, progress, hashed_files, total)?
+        group_by_hash(
+            files,
+            Some(PREFIX_HASH_BYTES),
+            cancel,
+            progress,
+            hashed_files,
+            total,
+        )?
     };
 
     let mut duplicates = Vec::new();
@@ -298,25 +326,16 @@ where
             continue;
         }
 
-        for (hash, group) in group_by_hash(
-            prefix_files,
-            None,
-            cancel,
-            progress,
-            hashed_files,
-            total,
-        )? {
+        for (hash, group) in
+            group_by_hash(prefix_files, None, cancel, progress, hashed_files, total)?
+        {
             if group.len() > 1 {
                 let mut files: Vec<String> = group
                     .into_iter()
                     .map(|path| path.to_string_lossy().into_owned())
                     .collect();
                 files.sort();
-                duplicates.push(DuplicateGroup {
-                    hash,
-                    files,
-                    size,
-                });
+                duplicates.push(DuplicateGroup { hash, files, size });
             }
         }
     }
@@ -351,7 +370,11 @@ where
     Ok(hash_map)
 }
 
-fn hash_file(path: &Path, prefix: Option<u64>, cancel: &AtomicBool) -> Result<String, std::io::Error> {
+fn hash_file(
+    path: &Path,
+    prefix: Option<u64>,
+    cancel: &AtomicBool,
+) -> Result<String, std::io::Error> {
     let mut file = fs::File::open(path)?;
     let digest = hash_reader(&mut file, prefix, Some(cancel))?;
     Ok(hex_encode(digest))
