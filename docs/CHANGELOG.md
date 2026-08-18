@@ -4,22 +4,27 @@ All notable changes to SimpleFile are documented here.
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+The current line is **0.1.0**. Entries under 1.x describe earlier published
+builds that remain in git history.
+
 ---
 
 ## [Unreleased]
 
+---
+
+## [0.1.0] - 2026-08-18
+
+Version metadata is now `0.1.0` in `src-tauri/Cargo.toml`,
+`src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and the README badge.
+
 ### Added
+- Context-aware Advanced Rename: a pure rename engine, Svelte dialog, persisted
+  settings, file-metadata and EXIF tokens, and undo for the batch.
 - Dedicated Find Duplicates view with keep-one / delete-extras actions.
 - Duplicate scans now size-group, hash the first 64 KiB, then confirm with
   full SHA-256. The SHA-256 compression function is Intel SHA-NI assembly
   on supported x86_64 CPUs, with a `sha2` fallback elsewhere.
-
-### Changed
-- Stopped tracking generated and local-only files: `frontend/node_modules`,
-  `frontend/dist`, Tauri `src-tauri/gen` schemas, updater `.secrets`, unused
-  Windows/iOS/Android icon sets, and leftover unused source/docs.
-
-### Added
 - Rubber-band drag-to-select in list and grid views, including dual-pane,
   additive Shift/Ctrl selection, and auto-scroll while dragging.
 - Destination-aware drag-and-drop onto folders, the opposite pane, the folder
@@ -27,28 +32,34 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
   internally and copy-by-default from other apps.
 - Outward native file dragging to other applications via `tauri-plugin-drag`,
   with an in-window fallback when the native drag session cannot start.
-- Added the Tauri CLI as a frontend development dependency so updater signing
-  keys and local Tauri commands can be run through the repository toolchain.
+- Tauri CLI as a frontend development dependency so updater signing keys and
+  local Tauri commands run through the repository toolchain.
+- User guide, Advanced Rename reference, keyboard shortcuts, and architecture
+  documentation. Historical reviews now live under `docs/archive/`.
 
 ### Changed
-- Rewrote the README around the current Linux-only project scope, Linux release
-  artifacts, current build scripts, and signed updater setup.
+- Advanced Rename no longer scrapes form fields from a legacy HTML overlay.
+  Preview and apply share one planner, number after filters, use file mtime
+  for date tokens, and rename folder contents without moving a parent in the
+  same pass as its children.
+- README, contributing, security, support, and roadmap docs now describe the
+  Linux-only 0.1.0 project.
+- Stopped tracking generated and local-only files: `frontend/node_modules`,
+  `frontend/dist`, Tauri `src-tauri/gen` schemas, updater `.secrets`, unused
+  Windows/iOS/Android icon sets, and leftover unused source/docs.
 - Aligned npm package metadata and user-facing license text with the Apache-2.0
   license file.
-- Updated the local Tauri packaging script to run through the repository's npm
-  Tauri CLI instead of requiring a global Cargo Tauri install.
+- Local Tauri packaging runs through the repository npm Tauri CLI instead of a
+  global Cargo install.
 
 ### Fixed
-- Manual release workflow dispatch now defaults to the checked-in manifest
-  version when the version input is blank, accepts either bare semantic versions
-  such as `1.1.0` or tag-style versions such as `v1.1.0`, and reports explicit
+- Manual release workflow dispatch defaults to the checked-in manifest version
+  when the version input is blank, accepts `0.1.0` or `v0.1.0`, and reports
   GitHub Actions annotations for invalid or mismatched inputs.
-- Draft release workflow builds can now proceed without
-  `TAURI_SIGNING_PRIVATE_KEY` by producing installer-only artifacts with the
-  local Tauri config override, while published updater releases still require
+- Draft release builds can proceed without `TAURI_SIGNING_PRIVATE_KEY` by
+  producing installer-only artifacts. Published updater releases still require
   the signing secret.
-- Updated the checked-in updater public key to match the newly generated local
-  signing keypair.
+- Updated the checked-in updater public key to match the local signing keypair.
 
 ---
 
@@ -66,7 +77,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 - Added `src-tauri/tauri.local.conf.json` so local release bundles can be built
   without requiring updater signing secrets.
 - Added dedicated 1.1.0 release documentation in
-  [`RELEASE_1.1.0.md`](RELEASE_1.1.0.md).
+  [`archive/release-1.1.0.md`](archive/release-1.1.0.md).
 
 ### Changed
 - SimpleFile licensing is documented through the Apache-2.0 license file at the
@@ -231,7 +242,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 ## [0.2.1] — 2026-04-30
 
 ### Added
-- `UI_BACKEND_REVIEW.md` with the v0.2.1 GUI, UI usability, Rust backend wiring,
+- Archived UI/backend review (`docs/archive/ui-backend-review.md`) with the v0.2.1 GUI, UI usability, Rust backend wiring,
   reliability, and CI/CD review.
 - Frontend JavaScript module syntax sanity checks in CI.
 - Pull-request dependency review in CI.
@@ -261,9 +272,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 ### Added
 - Intelligent network drive detection and per-drive optimization
 - File checksum calculation (MD5, SHA-1, SHA-256) via `checksum.rs`
-- `BUGS.md` — comprehensive 20-bug analysis with fix status
-- `FEATURE_OPPORTUNITIES.md` — 20 prioritized feature proposals
-- `CODE_ANALYSIS.md` — initial architecture review (23 issues, most now fixed)
+- Archived bug, feature, and code-analysis notes (now under `docs/archive/`)
 - Cross-platform CI/CD pipeline (`ci.yml`, `release.yml`)
 - `dependabot.yml` for automated dependency updates
 
@@ -292,7 +301,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ---
 
-## [0.1.0] — 2024-06-01
+## Initial prototype — 2024-06-01
+
+The first public prototype used the 0.1.0 version number. That line is
+historical; the current 0.1.0 release is dated 2026-08-18 above.
 
 ### Added
 - Initial release
@@ -315,7 +327,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ---
 
-[Unreleased]: https://github.com/conniecombs/SimpleFile-Linux/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/conniecombs/SimpleFile-Linux/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/conniecombs/SimpleFile-Linux/releases/tag/v0.1.0
 [1.1.0]: https://github.com/conniecombs/SimpleFile-Linux/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/conniecombs/SimpleFile-Linux/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/conniecombs/SimpleFile-Linux/compare/v1.0.1...v1.0.2
@@ -323,4 +336,3 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 [1.0.0]: https://github.com/conniecombs/SimpleFile-Linux/compare/v0.2.1...v1.0.0
 [0.2.1]: https://github.com/conniecombs/SimpleFile-Linux/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/conniecombs/SimpleFile-Linux/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/conniecombs/SimpleFile-Linux/releases/tag/v0.1.0

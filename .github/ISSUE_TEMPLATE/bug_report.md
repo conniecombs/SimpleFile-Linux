@@ -9,13 +9,11 @@ assignees: ""
 ## Environment
 
 | Field | Value |
-|-------|-------|
-| **OS** | <!-- e.g. Ubuntu 24.04, Windows 11, macOS 14.4 --> |
-| **SimpleFile version** | <!-- e.g. v0.2.0 — check About dialog or release page --> |
-| **Rust version** | <!-- run: rustc --version --> |
-| **Tauri version** | <!-- check src-tauri/Cargo.toml --> |
-
----
+|---|---|
+| **Distribution** | <!-- e.g. Ubuntu 24.04, Fedora 42 --> |
+| **Desktop** | <!-- e.g. GNOME 46 Wayland, KDE Plasma X11 --> |
+| **SimpleFile version** | <!-- Settings → About, e.g. 0.1.0 --> |
+| **Install method** | <!-- deb / rpm / AppImage / source --> |
 
 ## Steps to Reproduce
 
@@ -23,20 +21,16 @@ assignees: ""
 2.
 3.
 
----
-
 ## Expected Behavior
 
 <!-- What you expected to happen -->
 
 ## Actual Behavior
 
-<!-- What actually happened. Include error messages, screenshots, or log output if available. -->
-
----
+<!-- What happened. Include error text, a screenshot, or a log excerpt. -->
 
 ## Additional Context
 
-<!-- Anything else that might be relevant: file types involved, directory size, network drives, etc. -->
+<!-- File types, folder size, network mounts, or anything else that might matter. -->
 
-<!-- To capture backend logs, run: cargo tauri dev and reproduce the issue in the terminal output. -->
+<!-- Backend logs: run `npm run dev` from the repo and reproduce the issue in that terminal. -->

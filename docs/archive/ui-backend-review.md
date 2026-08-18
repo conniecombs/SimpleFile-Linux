@@ -1,3 +1,6 @@
+> **Historical.** This file is archived and is not the current product spec.
+> See [docs/README.md](../README.md) for current documentation.
+
 # UI and Backend Review - v1.0.0
 
 This review documents the usability, wiring, reliability, and CI/CD findings for the v1.0.0 baseline.

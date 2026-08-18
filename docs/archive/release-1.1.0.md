@@ -1,3 +1,6 @@
+> **Historical.** This file is archived and is not the current product spec.
+> See [docs/README.md](../README.md) for current documentation.
+
 # SimpleFile 1.1.0 Release Notes
 
 Release date: 2026-05-29

@@ -1,3 +1,6 @@
+> **Historical.** This file is archived and is not the current product spec.
+> See [docs/README.md](../README.md) for current documentation.
+
 # SimpleFile Code Analysis Report
 
 > Historical note: this report reflects the 2026-02-10 / v0.2.0 analysis pass.
