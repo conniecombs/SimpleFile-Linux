@@ -1,3 +1,6 @@
+> **Historical.** This file is archived and is not the current product spec.
+> See [docs/README.md](../README.md) for current documentation.
+
 # Svelte Migration Plan
 
 SimpleFile's shipping frontend has completed its Svelte/Vite migration. This

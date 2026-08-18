@@ -1,3 +1,6 @@
+> **Historical.** This file is archived and is not the current product spec.
+> See [docs/README.md](../README.md) for current documentation.
+
 # SimpleFile — Feature Opportunity Analysis
 
 A fresh, comprehensive analysis of the SimpleFile codebase identifying concrete opportunities

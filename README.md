@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/ci.yml)
 [![Release](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/release.yml/badge.svg)](https://github.com/conniecombs/SimpleFile-Linux/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/conniecombs/SimpleFile-Linux/releases)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/conniecombs/SimpleFile-Linux/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-purple)](https://tauri.app)
 [![Svelte](https://img.shields.io/badge/Svelte-5-orange)](https://svelte.dev)
@@ -27,7 +27,8 @@ This repository is Linux-only. The release workflow builds Linux x64 artifacts,
 and the Tauri bundle targets are Debian package, RPM package, and AppImage. A
 Flatpak manifest is also included for local Flatpak builds.
 
-This README focuses only on the current Linux file-manager scope.
+This README is the project overview. The [documentation index](docs/README.md)
+covers the user guide, Advanced Rename, architecture, and contribution process.
 
 ---
 
@@ -86,8 +87,8 @@ Linux integration currently includes:
 - Create folders and files.
 - Rename selected items.
 - Advanced Rename with recursive targeting, filters, templates, regex
-  replacement, whitespace cleanup, case transforms, sequential numbering, and
-  preview validation.
+  replacement, file-metadata and EXIF tokens, live preview, persisted
+  settings, and undo. See [Advanced Rename](docs/advanced-rename.md).
 - Copy, cut, paste, and move files or folders.
 - Conflict handling for copy and move operations: keep both, replace, skip,
   cancel, and apply-to-remaining.
@@ -261,7 +262,8 @@ What the checks cover:
 - Svelte type checking and Vite production build.
 - JavaScript syntax checks for repository scripts.
 - Frontend/backend Tauri invoke consistency.
-- Updater configuration checks.
+- Advanced Rename engine tests.
+- Updater configuration and accessibility markup checks.
 - GitHub workflow wiring checks.
 - Rust formatting, tests, and Clippy when running `check:rust` or
   `check:release`.
@@ -305,7 +307,7 @@ Release behavior:
 
 - Manual release versions are optional. If blank, the workflow uses the version
   in `src-tauri/tauri.conf.json`.
-- Explicit manual versions may be `1.1.0` or `v1.1.0`.
+- Explicit manual versions may be `0.1.0` or `v0.1.0`.
 - The requested version must match both `src-tauri/Cargo.toml` and
   `src-tauri/tauri.conf.json`.
 - Draft releases can build installer-only artifacts without updater signing
@@ -370,26 +372,20 @@ SimpleFile-Linux/
 
 ## Keyboard Shortcuts
 
+Common shortcuts. The full list is in
+[keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
+
 | Shortcut | Action |
 |---|---|
 | `Enter` | Open selected item |
 | `Space` | Quick Look |
 | `Backspace` | Go up one folder |
 | `Ctrl+A` | Select all |
-| `Ctrl+C` | Copy |
-| `Ctrl+X` | Cut |
-| `Ctrl+V` | Paste |
-| `Ctrl+Shift+V` | Clipboard history |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` or `Ctrl+Shift+Z` | Redo |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+F` | Focus search |
-| `Ctrl+N` | Create folder |
-| `Ctrl+Shift+N` | Create file |
-| `Ctrl+Shift+P` | Open command palette |
-| `Ctrl+Shift+D` | Find duplicate files |
+| `Ctrl+Shift+P` | Command palette |
 | `F2` | Rename |
-| `F4` | Open terminal here |
-| `F5` | Refresh |
 | `Delete` | Delete selected items |
 | `Escape` | Close overlays or clear transient UI |
 
@@ -397,16 +393,20 @@ SimpleFile-Linux/
 
 ## Documentation
 
-- [`docs/CHANGELOG.md`](docs/CHANGELOG.md) - release history.
-- [`docs/UPDATER_RELEASE.md`](docs/UPDATER_RELEASE.md) - signed updater setup.
-- [`.github/RELEASE.md`](.github/RELEASE.md) - release workflow notes.
-- [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) - contribution guide.
-- [`docs/SECURITY.md`](docs/SECURITY.md) - vulnerability reporting.
-- [`docs/SUPPORT.md`](docs/SUPPORT.md) - support channels.
+See the [documentation index](docs/README.md).
 
-Some older files under `docs/` may still describe removed or historical
-experiments. Treat this README as the authoritative Linux-focused project
-overview.
+| Guide | Contents |
+|---|---|
+| [User guide](docs/user-guide.md) | Browsing, transfers, search, archives, settings |
+| [Advanced Rename](docs/advanced-rename.md) | Operations, tokens, preview, undo |
+| [Keyboard shortcuts](docs/keyboard-shortcuts.md) | Complete shortcut reference |
+| [Architecture](docs/architecture.md) | Frontend, backend, and IPC |
+| [Contributing](docs/CONTRIBUTING.md) | Setup, style, and pull requests |
+| [Roadmap](docs/ROADMAP.md) | Current status and planned work |
+| [Changelog](docs/CHANGELOG.md) | Release history |
+| [Updater](docs/UPDATER_RELEASE.md) | Signed GitHub updater setup |
+| [Security](docs/SECURITY.md) | Vulnerability reporting |
+| [Support](docs/SUPPORT.md) | Where to get help |
 
 ---
 

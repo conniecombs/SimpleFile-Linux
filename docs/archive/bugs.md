@@ -1,3 +1,6 @@
+> **Historical.** This file is archived and is not the current product spec.
+> See [docs/README.md](../README.md) for current documentation.
+
 # SimpleFile Bug Report
 
 Comprehensive analysis of the current codebase identifying potential bugs,
