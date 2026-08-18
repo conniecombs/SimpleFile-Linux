@@ -9,6 +9,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 ## [Unreleased]
 
 ### Added
+- Rubber-band drag-to-select in list and grid views, including dual-pane,
+  additive Shift/Ctrl selection, and auto-scroll while dragging.
+- Destination-aware drag-and-drop onto folders, the opposite pane, the folder
+  tree, Quick Access, bookmarks, recents, and breadcrumbs, with move-by-default
+  internally and copy-by-default from other apps.
+- Outward native file dragging to other applications via `tauri-plugin-drag`,
+  with an in-window fallback when the native drag session cannot start.
 - Added the Tauri CLI as a frontend development dependency so updater signing
   keys and local Tauri commands can be run through the repository toolchain.
 

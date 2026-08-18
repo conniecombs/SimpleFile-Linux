@@ -34,9 +34,6 @@ import { invokeCommand } from '../tauri.js';
     moveEntryResolved,
     moveWithProgress,
     moveToTrash,
-    onExternalFileDrop,
-    onExternalFileDropHover,
-    onExternalFileDropLeave,
     onFileChange,
     onOperationProgress,
     openFile,
@@ -95,7 +92,6 @@ import { invokeCommand } from '../tauri.js';
     CleanupResult,
     ConflictAction,
     FileEntry,
-    NativeFileDropEventPayload,
     OperationId,
     PathString,
     ProgressUpdate,
@@ -106,10 +102,11 @@ import { invokeCommand } from '../tauri.js';
   } from '../types';
 import { localState } from './localState.svelte';
 import type { PaneId } from "../fileNavigation.js";
-import type { TransferAction } from "../transferPathUtils.js";
 import { showAdvancedRenameFlow, closeAdvancedRenameFlow, applyAdvancedRenameFlow, updateAdvancedRenameOperationClasses, refreshAdvancedRenamePreview } from "./advanced_rename.js";
 import { showCreateArchiveFlow, closeArchiveFlow, extractArchiveFlow } from "./archive.js";
-import { applyPersistedViewSettings, updateStatusBar, loadTagsFlow, loadDirectory, openEntryPath, filteredEntriesForPane, selectedSetForPane, selectSecondaryPaths, selectPaths, updatePreviewPane, navigateHistory, refreshCurrentDirectory, createFolderFlow, createFileFlow, renameSelectedFlow, copySelection, pasteClipboard, deleteSelectedFlow, undoLastFlow, redoLastFlow, showClipboardHistoryFlow, showSetColorLabelFlow, showFolderMetricsFlow, showDiskCleanupFlow, closePreviewPaneFlow, applyTheme, loadSecondaryDirectory, pathForPane, navigateSpecial, navigateSecondaryHistory, loadTreeChildren, applyEntryFilters, applySecondaryEntryFilters, openNewTab, switchToTab, closeTab, moveTabFocus, showQuickLookFlow, showKeyboardHelpFlow, showContextMenuAt, handleContextMenuCommand, hideContextMenu, closeSettingsModal, syncSettingsControls, updateToolStatus, saveSettingsFromControls, installToolFlow, checkForUpdatesFlow, installUpdateFlow, showAboutFlow, overlayById, closeQuickLookFlow, closeKeyboardHelpFlow, hideProgressFlow, selectAllEntries, refreshSecondaryPane, openSelected, updateProgressFlow, pathsFromNativeDropPayload, setExternalDropOverlayVisible, transferEntriesWithSafety, scheduleFileChangeRefresh, currentSelectionPaths, dropDestinationFromTarget, resetInternalDragState, setDefaultFileManagerFlow } from "./core.js";
+import { applyPersistedViewSettings, updateStatusBar, loadTagsFlow, loadDirectory, openEntryPath, filteredEntriesForPane, selectedSetForPane, selectSecondaryPaths, selectPaths, updatePreviewPane, navigateHistory, refreshCurrentDirectory, createFolderFlow, createFileFlow, renameSelectedFlow, copySelection, pasteClipboard, deleteSelectedFlow, undoLastFlow, redoLastFlow, showClipboardHistoryFlow, showSetColorLabelFlow, showFolderMetricsFlow, showDiskCleanupFlow, closePreviewPaneFlow, applyTheme, loadSecondaryDirectory, pathForPane, navigateSpecial, navigateSecondaryHistory, loadTreeChildren, applyEntryFilters, applySecondaryEntryFilters, openNewTab, switchToTab, closeTab, moveTabFocus, showQuickLookFlow, showKeyboardHelpFlow, showContextMenuAt, handleContextMenuCommand, hideContextMenu, closeSettingsModal, syncSettingsControls, updateToolStatus, saveSettingsFromControls, installToolFlow, checkForUpdatesFlow, installUpdateFlow, showAboutFlow, overlayById, closeQuickLookFlow, closeKeyboardHelpFlow, hideProgressFlow, selectAllEntries, refreshSecondaryPane, openSelected, updateProgressFlow, scheduleFileChangeRefresh, setDefaultFileManagerFlow } from "./core.js";
+import { installDragAndDrop } from "../dragAndDrop";
+import { installMarqueeSelection } from "../marqueeSelection";
 import { loadSmartFoldersFlow, runSearch, clearSearch, setSearchControlsVisible, openAdvancedSearchFlow, saveCurrentSearchAsSmartFolderFlow, openSmartFolderFlow, deleteSmartFolderFlow, showPropertiesFlow } from "./search.js";
 
 
@@ -887,106 +884,17 @@ export function initApp() {
 
     };
 
-    const handleNativeDropHover = (event: { payload: NativeFileDropEventPayload }) => {
-      const paths = pathsFromNativeDropPayload(event.payload);
-      setExternalDropOverlayVisible(paths.length > 0, appState.currentPath);
-    };
-
-    const handleNativeDrop = (event: { payload: NativeFileDropEventPayload }) => {
-      const paths = pathsFromNativeDropPayload(event.payload);
-      setExternalDropOverlayVisible(false);
-      if (paths.length > 0) {
-        void transferEntriesWithSafety(paths, appState.currentPath, 'copy', {
-          successMessage: `Copied ${paths.length} dropped item${paths.length === 1 ? '' : 's'}`,
-        });
-      }
-    };
-
-    const handleNativeDropLeave = () => {
-      setExternalDropOverlayVisible(false);
-    };
-
     const handleFileChange = (event: { payload: { path?: PathString } }) => {
       const path = event.payload?.path;
       if (path) scheduleFileChangeRefresh(path);
     };
 
-    const handleDragStart = (event: DragEvent) => {
-      const target = event.target as HTMLElement | null;
-      const item = target?.closest<HTMLElement>('.file-item[data-path], .tree-item[data-path]');
-      const path = item?.dataset.path as PathString | undefined;
-      if (!path) return;
-
-      const selectedPaths = currentSelectionPaths();
-      const paths = selectedPaths.includes(path) ? selectedPaths : [path];
-      appState.draggedItems = paths;
-      appState.isDragging = true;
-      event.dataTransfer?.setData('text/plain', paths.join('\n'));
-      event.dataTransfer?.setData('text/uri-list', paths.join('\n'));
-      if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copyMove';
-
-      // Use native drag for both internal and external drag
-      event.preventDefault();
-      
-      // Ensure window is focused before starting drag, crucial for Wayland compositors
-      const doDrag = async () => {
-        try {
-          const { getCurrentWindow } = await import('@tauri-apps/api/window');
-          const win = getCurrentWindow();
-          if (!(await win.isFocused())) {
-            await win.setFocus();
-          }
-        } catch (e) {
-          console.error('Failed to focus window for drag:', e);
-        }
-        
-        import('@crabnebula/tauri-plugin-drag').then(({ startDrag }) => {
-           startDrag({
-             item: paths,
-             icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-           }).then(() => {
-             appState.draggedItems = [];
-             appState.isDragging = false;
-           }).catch((err) => {
-             console.error('Native drag error:', err);
-             appState.draggedItems = [];
-             appState.isDragging = false;
-           });
-        }).catch(console.error);
-      };
-      
-      doDrag();
-    };
-
-    const handleDragOver = (event: DragEvent) => {
-      const hasInternalDrag = (appState.draggedItems?.length || 0) > 0;
-      const hasNativeFiles = Array.from(event.dataTransfer?.types || []).includes('Files');
-      if (!hasInternalDrag && !hasNativeFiles) return;
-      event.preventDefault();
-      if (event.dataTransfer) event.dataTransfer.dropEffect = event.ctrlKey ? 'copy' : 'move';
-    };
-
-    const handleDrop = (event: DragEvent) => {
-      const paths = [...(appState.draggedItems || [])] as PathString[];
-      if (paths.length === 0) return;
-      event.preventDefault();
-      const destination = dropDestinationFromTarget(event.target);
-      const action: TransferAction = event.ctrlKey ? 'copy' : 'move';
-      resetInternalDragState();
-      void transferEntriesWithSafety(paths, destination, action);
-    };
-
-    const handleDragEnd = () => {
-      resetInternalDragState();
-    };
-
     const unlistenPromises = [
       onFileChange(handleFileChange),
       onOperationProgress(handleOperationProgress),
-      onExternalFileDropHover(handleNativeDropHover),
-      onExternalFileDrop(handleNativeDrop),
-      onExternalFileDropLeave(handleNativeDropLeave),
     ];
+    const teardownDragAndDrop = installDragAndDrop();
+    const teardownMarqueeSelection = installMarqueeSelection();
 
     document.addEventListener('simplefile:file-list-item-open', handleOpenEntry);
     document.addEventListener('simplefile:file-list-item-click', handleItemSelection);
@@ -1035,10 +943,6 @@ export function initApp() {
     document.addEventListener('mousedown', handleDocumentPointerDown);
     document.addEventListener('mousedown', handleModalPointerDown);
     document.addEventListener('keydown', handleKeydown);
-    document.addEventListener('dragstart', handleDragStart);
-    document.addEventListener('dragover', handleDragOver);
-    document.addEventListener('drop', handleDrop);
-    document.addEventListener('dragend', handleDragEnd);
 
     return () => {
       if (localState.fileChangeRefreshTimer !== null) {
@@ -1096,10 +1000,8 @@ export function initApp() {
       document.removeEventListener('mousedown', handleDocumentPointerDown);
       document.removeEventListener('mousedown', handleModalPointerDown);
       document.removeEventListener('keydown', handleKeydown);
-      document.removeEventListener('dragstart', handleDragStart);
-      document.removeEventListener('dragover', handleDragOver);
-      document.removeEventListener('drop', handleDrop);
-      document.removeEventListener('dragend', handleDragEnd);
+      teardownDragAndDrop();
+      teardownMarqueeSelection();
     };
 
 }

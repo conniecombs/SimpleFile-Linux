@@ -1963,6 +1963,7 @@ const defaultColorLabels = [
     const overlay = document.getElementById('external-drop-overlay');
     const pathElement = document.getElementById('external-drop-path');
     if (pathElement) pathElement.textContent = destination || '';
+    overlay?.classList.toggle('active', visible);
     overlay?.classList.toggle('visible', visible);
     overlay?.setAttribute('aria-hidden', visible ? 'false' : 'true');
   }

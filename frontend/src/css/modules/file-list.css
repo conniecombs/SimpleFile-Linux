@@ -13,6 +13,12 @@
     padding: 8px;
     opacity: 1;
     transition: opacity 0.12s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.file-list.selecting {
+    cursor: default;
 }
 
 .file-list.navigating {
