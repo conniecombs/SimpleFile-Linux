@@ -93,12 +93,12 @@
     })) as TreeViewNode[];
   });
 
-  const quickAccessLocations = [
-    { name: 'Home', icon: '🏠', action: 'navigateHome' },
-    { name: 'Desktop', icon: '💻', action: 'navigateDesktop' },
-    { name: 'Downloads', icon: '📥', action: 'navigateDownloads' },
-    { name: 'Documents', icon: '📄', action: 'navigateDocuments' }
-  ];
+  let quickAccessLocations = $derived([
+    { name: 'Home', icon: '🏠', action: 'navigateHome', path: appState.homePath || undefined },
+    { name: 'Desktop', icon: '💻', action: 'navigateDesktop', path: appState.xdgDirs?.desktop || undefined },
+    { name: 'Downloads', icon: '📥', action: 'navigateDownloads', path: appState.xdgDirs?.downloads || undefined },
+    { name: 'Documents', icon: '📄', action: 'navigateDocuments', path: appState.xdgDirs?.documents || undefined },
+  ]);
 </script>
 
 <aside class="sidebar" role="navigation" aria-label="Folder navigation">

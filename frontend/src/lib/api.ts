@@ -428,6 +428,12 @@ export function onExternalFileDropHover(
   return listenToEvent('tauri://drag-enter', callback);
 }
 
+export function onExternalFileDropOver(
+  callback: EventCallback<NativeFileDropEventPayload>
+): Promise<UnlistenFn> {
+  return listenToEvent('tauri://drag-over', callback);
+}
+
 export function onExternalFileDrop(callback: EventCallback<NativeFileDropEventPayload>): Promise<UnlistenFn> {
   return listenToEvent('tauri://drag-drop', callback);
 }

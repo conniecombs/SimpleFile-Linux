@@ -48,6 +48,7 @@
         index: i,
         isCut: false,
         isDir: entry.is_dir,
+        isDragging: Boolean((appState.draggedItems || []).includes(entry.path)),
         isFocused: i === appState.focusedIndex && appState.activePane === pane,
         isImage: entry.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) !== null,
         isPdf: entry.name.toLowerCase().endsWith('.pdf'),
@@ -107,6 +108,7 @@
   class="file-list"
   class:list-view={!appState.isGridView}
   class:grid-view={appState.isGridView}
+  class:drag-active={appState.isDragging}
   id={pane === 'primary' ? 'file-list' : 'secondary-file-list'}
   role="listbox"
   aria-label={listLabel}

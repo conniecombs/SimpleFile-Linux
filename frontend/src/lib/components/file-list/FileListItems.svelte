@@ -11,6 +11,7 @@
     index: number;
     isCut: boolean;
     isDir: boolean;
+    isDragging?: boolean;
     isFocused: boolean;
     isImage: boolean;
     isPdf: boolean;
@@ -51,6 +52,7 @@
       isGrid ? 'grid-item' : 'list-item',
       item.isSelected ? 'selected' : '',
       item.isCut ? 'cut' : '',
+      item.isDragging ? 'dragging' : '',
       item.isFocused ? 'focused' : '',
       item.git_status ? `git-${item.git_status}` : '',
     ].filter(Boolean).join(' ');

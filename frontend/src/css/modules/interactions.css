@@ -30,7 +30,8 @@
 
 /* ── Drag and Drop ────────────────────────────────────────────────────────── */
 
-.file-item.dragging {
+.file-item.dragging,
+.tree-item.dragging {
     opacity: 0.48;
     transform: scale(0.985);
 }
@@ -39,7 +40,12 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
 }
 
-.file-item.drag-over {
+.file-item.drag-over,
+.tree-item.drag-over,
+.quick-access-item.drag-over,
+.bookmark-item.drag-over,
+.recent-item.drag-over,
+.breadcrumb-segment.drag-over {
     /* color-mix() derives the tint from the current theme accent so both dark
        and light themes get the correct highlight color instead of the old
        hardcoded dark-theme rgba(137,180,250,…). */
@@ -51,7 +57,13 @@
 }
 
 .file-item.drag-over::after,
-.file-item.drag-over-invalid::after {
+.file-item.drag-over-invalid::after,
+.tree-item.drag-over::after,
+.tree-item.drag-over-invalid::after,
+.quick-access-item.drag-over::after,
+.bookmark-item.drag-over::after,
+.recent-item.drag-over::after,
+.breadcrumb-segment.drag-over::after {
     content: attr(data-drop-label);
     position: absolute;
     right: 10px;
@@ -159,6 +171,13 @@
 
 .file-item.cut {
     opacity: 0.5;
+}
+
+body.marquee-selecting,
+body.marquee-selecting * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: default;
 }
 
 /* ── Rubber-band Selection Rectangle ─────────────────────────────────────── */

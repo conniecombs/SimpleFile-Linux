@@ -42,6 +42,10 @@ function hasTauriInvoke() {
     }).__TAURI_INTERNALS__?.invoke === 'function';
 }
 
+export function isTauriRuntime() {
+  return hasTauriInvoke();
+}
+
 function shouldUseDevFallback() {
   return import.meta.env.DEV && !hasTauriInvoke();
 }

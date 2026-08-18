@@ -249,6 +249,7 @@ export interface TauriEventMap {
 
   'update-chunk': UpdateChunkPayload;
   'tauri://drag-enter': NativeFileDropEventPayload;
+  'tauri://drag-over': NativeFileDropEventPayload;
   'tauri://drag-drop': NativeFileDropEventPayload;
   'tauri://drag-leave': NativeFileDropEventPayload;
   'drives-changed': void;
