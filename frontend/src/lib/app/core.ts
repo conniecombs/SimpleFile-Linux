@@ -119,7 +119,7 @@ import {
 import { localState } from './localState.svelte';
 import type { PaneId } from "../fileNavigation.js";
 import type { TransferAction } from "../transferPathUtils.js";
-import { showAdvancedRenameFlow } from "./advanced_rename.js";
+
 import { isArchiveEntry, showArchiveContentsFlow, showCreateArchiveFlow, extractArchiveFlow, archiveExtractFolderNameForPath } from "./archive.js";
 import { resetSearchStateForNavigation, showPropertiesFlow } from "./search.js";
 
@@ -2007,7 +2007,7 @@ const defaultColorLabels = [
     } else if (commandId === 'ctx-rename') {
       await renameSelectedFlow();
     } else if (commandId === 'ctx-advanced-rename') {
-      await showAdvancedRenameFlow();
+      document.dispatchEvent(new CustomEvent('simplefile:advanced-rename'));
     } else if (commandId === 'ctx-copy') {
       copySelection('copy');
     } else if (commandId === 'ctx-cut') {

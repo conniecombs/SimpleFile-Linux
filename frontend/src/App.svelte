@@ -6,6 +6,7 @@
   import { renderLayoutShell } from './lib/components/layout-shell';
   import { initApp } from './lib/app/setup';
   import DuplicatesOverlay from './lib/components/duplicates/DuplicatesOverlay.svelte';
+  import AdvancedRenameOverlay from './lib/components/advanced-rename/AdvancedRenameOverlay.svelte';
 
   onMount(() => {
     // @ts-ignore
@@ -23,3 +24,4 @@
 
 {@html legacyOverlayMarkup}
 <DuplicatesOverlay />
+<AdvancedRenameOverlay />

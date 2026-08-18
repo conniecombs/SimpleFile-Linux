@@ -102,7 +102,7 @@ import { invokeCommand } from '../tauri.js';
   } from '../types';
 import { localState } from './localState.svelte';
 import type { PaneId } from "../fileNavigation.js";
-import { showAdvancedRenameFlow, closeAdvancedRenameFlow, applyAdvancedRenameFlow, updateAdvancedRenameOperationClasses, refreshAdvancedRenamePreview } from "./advanced_rename.js";
+
 import { showCreateArchiveFlow, closeArchiveFlow, extractArchiveFlow } from "./archive.js";
 import { applyPersistedViewSettings, updateStatusBar, loadTagsFlow, loadDirectory, openEntryPath, filteredEntriesForPane, selectedSetForPane, selectSecondaryPaths, selectPaths, updatePreviewPane, navigateHistory, refreshCurrentDirectory, createFolderFlow, createFileFlow, renameSelectedFlow, copySelection, pasteClipboard, deleteSelectedFlow, undoLastFlow, redoLastFlow, showClipboardHistoryFlow, showSetColorLabelFlow, showFolderMetricsFlow, showDiskCleanupFlow, closePreviewPaneFlow, applyTheme, loadSecondaryDirectory, pathForPane, navigateSpecial, navigateSecondaryHistory, loadTreeChildren, applyEntryFilters, applySecondaryEntryFilters, openNewTab, switchToTab, closeTab, moveTabFocus, showQuickLookFlow, showKeyboardHelpFlow, showContextMenuAt, handleContextMenuCommand, hideContextMenu, closeSettingsModal, syncSettingsControls, updateToolStatus, saveSettingsFromControls, installToolFlow, checkForUpdatesFlow, installUpdateFlow, showAboutFlow, overlayById, closeQuickLookFlow, closeKeyboardHelpFlow, hideProgressFlow, selectAllEntries, refreshSecondaryPane, openSelected, updateProgressFlow, scheduleFileChangeRefresh, setDefaultFileManagerFlow } from "./core.js";
 import { installDragAndDrop } from "../dragAndDrop";
@@ -463,10 +463,6 @@ export function initApp() {
       void showCreateArchiveFlow();
     };
 
-    const handleAdvancedRename = () => {
-      void showAdvancedRenameFlow();
-    };
-
     const handleKeyboardHelp = () => {
       showKeyboardHelpFlow();
     };
@@ -696,20 +692,6 @@ export function initApp() {
         }
       }
 
-      const advancedRenameOverlay = overlayById('advanced-rename-overlay');
-      if (advancedRenameOverlay?.classList.contains('visible')) {
-        if (target === advancedRenameOverlay || target.closest('#adv-rename-close, #adv-rename-cancel')) {
-          event.preventDefault();
-          closeAdvancedRenameFlow();
-          return;
-        }
-        if (target.closest('#adv-rename-confirm')) {
-          event.preventDefault();
-          void applyAdvancedRenameFlow();
-          return;
-        }
-      }
-
       const keyboardHelpOverlay = overlayById('keyboard-help-overlay');
       if (
         keyboardHelpOverlay?.classList.contains('visible')
@@ -727,13 +709,6 @@ export function initApp() {
         }
         hideProgressFlow();
       }
-    };
-
-    const handleAdvancedRenameControlInput = (event: Event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
-      if (!target?.closest('#advanced-rename-overlay')) return;
-      updateAdvancedRenameOperationClasses();
-      void refreshAdvancedRenamePreview();
     };
 
     const handleModalPointerDown = (event: MouseEvent) => {
@@ -768,11 +743,6 @@ export function initApp() {
         if (overlayById('archive-overlay')?.classList.contains('visible')) {
           event.preventDefault();
           closeArchiveFlow();
-          return;
-        }
-        if (overlayById('advanced-rename-overlay')?.classList.contains('visible')) {
-          event.preventDefault();
-          closeAdvancedRenameFlow();
           return;
         }
         if (overlayById('keyboard-help-overlay')?.classList.contains('visible')) {
@@ -933,7 +903,6 @@ export function initApp() {
     document.addEventListener('simplefile:quick-look', handleQuickLook);
     document.addEventListener('simplefile:preview-close', handlePreviewClose);
     document.addEventListener('simplefile:create-archive', handleCreateArchive);
-    document.addEventListener('simplefile:advanced-rename', handleAdvancedRename);
     document.addEventListener('simplefile:keyboard-help', handleKeyboardHelp);
     document.addEventListener('simplefile:set-color-label', handleSetColorLabel);
     document.addEventListener('simplefile:folder-metrics', handleFolderMetrics);
@@ -945,9 +914,7 @@ export function initApp() {
 
     document.addEventListener('click', handleStage5OverlayClick);
     document.addEventListener('change', handleSettingsChange);
-    document.addEventListener('change', handleAdvancedRenameControlInput);
     document.addEventListener('input', handleSettingsInput);
-    document.addEventListener('input', handleAdvancedRenameControlInput);
     document.addEventListener('mousedown', handleDocumentPointerDown);
     document.addEventListener('mousedown', handleModalPointerDown);
     document.addEventListener('keydown', handleKeydown);
@@ -990,7 +957,6 @@ export function initApp() {
       document.removeEventListener('simplefile:quick-look', handleQuickLook);
       document.removeEventListener('simplefile:preview-close', handlePreviewClose);
       document.removeEventListener('simplefile:create-archive', handleCreateArchive);
-      document.removeEventListener('simplefile:advanced-rename', handleAdvancedRename);
       document.removeEventListener('simplefile:keyboard-help', handleKeyboardHelp);
       document.removeEventListener('simplefile:set-color-label', handleSetColorLabel);
       document.removeEventListener('simplefile:folder-metrics', handleFolderMetrics);
@@ -1002,9 +968,7 @@ export function initApp() {
 
       document.removeEventListener('click', handleStage5OverlayClick);
       document.removeEventListener('change', handleSettingsChange);
-      document.removeEventListener('change', handleAdvancedRenameControlInput);
       document.removeEventListener('input', handleSettingsInput);
-      document.removeEventListener('input', handleAdvancedRenameControlInput);
       document.removeEventListener('mousedown', handleDocumentPointerDown);
       document.removeEventListener('mousedown', handleModalPointerDown);
       document.removeEventListener('keydown', handleKeydown);
