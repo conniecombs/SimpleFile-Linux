@@ -13,16 +13,17 @@ list. The complete shortcut table is in [keyboard-shortcuts.md](keyboard-shortcu
 - **Toolbar:** Back/forward, path bar, search, list/grid, dual pane, preview,
   and a View and tools menu. File operations stay on the context menu,
   shortcuts, and command palette.
-- **File list:** List or grid view of the current folder, with optional dual
-  pane.
+- **File list:** List or grid view of the current folder, with a tab strip on
+  each pane and optional dual pane.
 - **Preview pane:** Optional side panel for the highlighted item.
 - **Status bar:** Selection count, size, and free space on the active volume.
 
-Tabs keep independent folders. Dual pane (`F6`) puts a second folder beside the
+Each pane has its own tabs. Dual pane (`F6`) puts a second folder beside the
 first for copy and move work. Each pane is its own session: path, history, tabs,
 selection, sort, list/grid, hidden files, filter, and search. The sidebar, tree,
-toolbar path bar, and search box always act on the **active** pane. `Tab`
-switches panes. When dual pane is on, each pane also has its own path header.
+toolbar (back/forward/up/path/search), and `Ctrl+L` always act on the
+**active** pane. `Tab` switches panes. Clicking a tab on the other pane
+activates that pane.
 
 ## Opening locations
 

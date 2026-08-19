@@ -6,12 +6,6 @@
   import ToolbarShell from './ToolbarShell.svelte';
   import CommandPalette from './CommandPalette.svelte';
 
-  import TabsBar from '../tabs/TabsBar.svelte';
-  // @ts-ignore
-  import { state as appState } from '../../app/state.svelte.ts';
-
-  let activeSession = $derived(appState.panes?.[appState.activePane === 'secondary' ? 'secondary' : 'primary'] || appState.panes?.primary);
-
   const SIDEBAR_MIN_WIDTH = 150;
   const SIDEBAR_MAX_WIDTH = 600;
 
@@ -107,12 +101,6 @@
 ></button>
 
 <main class="main-content">
-  <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Open folders">
-    <div class="tabs-container" id="tabs-container">
-      <TabsBar tabs={activeSession?.tabs || []} activeTabId={activeSession?.activeTabId || null} />
-    </div>
-  </div>
-
   <ToolbarShell />
   <ContentShell />
 

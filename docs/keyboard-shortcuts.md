@@ -5,8 +5,10 @@ list is available in the app from the command palette or the keyboard help
 dialog.
 
 In dual pane, navigation shortcuts, tabs, search, sort, view, hidden files, and
-quick filter apply to the **active** pane. `Tab` switches which pane is active.
-The toolbar path bar (`Ctrl+L`) shows and edits that pane's location.
+quick filter apply to the **active** pane. Each pane has its own tab strip.
+`Tab` switches which pane is active. The toolbar path bar (`Ctrl+L`) shows and
+edits that pane's location. Clicking a tab or New Tab on the other pane
+activates it first.
 
 ## Navigation
 
@@ -66,6 +68,6 @@ command palette.
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl+T` | New tab |
-| `Ctrl+W` | Close the current tab |
+| `Ctrl+T` | New tab in the active pane |
+| `Ctrl+W` | Close the current tab in the active pane |
 | `Ctrl+D` | Bookmark the current folder |

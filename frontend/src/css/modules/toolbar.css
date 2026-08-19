@@ -577,7 +577,7 @@
 @media (max-width: 640px) {
     .more-actions-dropdown {
         position: fixed;
-        top: calc(var(--tab-height) + var(--toolbar-height) + 6px);
+        top: calc(var(--toolbar-height) + 6px);
         right: 8px;
         width: min(340px, calc(100vw - 16px));
     }

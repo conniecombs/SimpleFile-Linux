@@ -137,9 +137,7 @@
     aria-label="Primary file pane"
     onmousedown={() => activatePaneFromEvent('primary')}
   >
-    {#if appState.dualPaneEnabled}
-      <PaneHeader pane="primary" />
-    {/if}
+    <PaneHeader pane="primary" />
     <div class="file-container">
       {#if !appState.panes.primary.isGridView}
         <FileListHeader pane="primary" />

@@ -1,6 +1,6 @@
 /* ============================================================================
    Tabs
-   Tab bar, individual tabs, close buttons, and the new-tab button.
+   Per-pane tab strips, individual tabs, close buttons, and the new-tab button.
    ============================================================================ */
 
 .tab-bar {
@@ -10,6 +10,7 @@
     border-bottom: 1px solid var(--border-color);
     height: var(--tab-height);
     padding: 0 4px;
+    min-width: 0;
 }
 
 .tabs-container {
@@ -19,6 +20,7 @@
     overflow-y: hidden;
     gap: 2px;
     scrollbar-width: none;
+    min-width: 0;
 }
 
 .tabs-container::-webkit-scrollbar {
@@ -28,18 +30,19 @@
 .tab {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 6px;
+    padding: 4px 8px;
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     transition: all var(--transition-fast);
     white-space: nowrap;
-    max-width: 200px;
-    min-width: 100px;
+    max-width: 160px;
+    min-width: 72px;
+    flex-shrink: 0;
 }
 
 .tab:hover {
@@ -62,7 +65,7 @@
 }
 
 .tab-icon {
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .tab-title {
@@ -72,12 +75,12 @@
 }
 
 .tab-close {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border: none;
     background: transparent;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     border-radius: var(--radius-sm);
     display: flex;
@@ -98,18 +101,18 @@
 }
 
 .tab-new-btn {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border: none;
     background: transparent;
     color: var(--text-muted);
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 4px;
+    margin-left: 2px;
     flex-shrink: 0;
 }
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { PaneId } from '../../paneSession';
+
   export type TabView = {
     id: string;
     path: string;
@@ -7,9 +9,11 @@
 
   let {
     activeTabId = null,
+    pane,
     tabs = [],
   }: {
     activeTabId?: string | null;
+    pane?: PaneId;
     tabs?: TabView[];
   } = $props();
 
@@ -29,7 +33,7 @@
   function emitTabEvent(type: string, event: MouseEvent | KeyboardEvent, detail = {}) {
     event.currentTarget?.dispatchEvent(new CustomEvent(type, {
       bubbles: true,
-      detail,
+      detail: pane ? { pane, ...detail } : detail,
     }));
   }
 
@@ -87,6 +91,7 @@
   <div
     class={`tab${isActive(tab) ? ' active' : ''}`}
     data-tab-id={tab.id}
+    data-pane={pane}
     role="tab"
     aria-selected={isActive(tab)}
     tabindex={isActive(tab) ? 0 : -1}

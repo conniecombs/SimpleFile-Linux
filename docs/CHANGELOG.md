@@ -14,10 +14,14 @@ builds that remain in git history.
 ### Added
 - Independent dual-pane sessions. Each pane keeps its own path, history, tabs,
   selection, sort, list/grid view, hidden-file setting, quick filter, and
-  search. Shared chrome (sidebar, tree, toolbar, tab bar, `Ctrl+L`) always
-  navigates the active pane. Directory watching covers both open folders.
+  search. Shared chrome (sidebar, tree, toolbar, `Ctrl+L`) always navigates
+  the active pane. Directory watching covers both open folders.
 
 ### Changed
+- Each pane shows its own tab strip. The window-level tab bar and the
+  dual-pane back/forward/path headers are gone. The main toolbar still
+  navigates only the active pane; clicking a tab on the other pane activates
+  that pane first.
 - Toolbar is navigation plus a view cluster (list/grid, dual pane, preview).
   File operations stay in the context menu, shortcuts, and command palette.
   View and tools holds hidden files, theme, new folder/file, terminal, cleanup,

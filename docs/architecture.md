@@ -44,8 +44,9 @@ sectioned preferences surface (`Appearance`, `Browser`, `Startup`, `Files`,
 State lives in `frontend/src/lib/app/state.svelte.ts`. Browse state is a
 `PaneSession` per pane (`frontend/src/lib/paneSession.ts`): path, listing,
 selection, history, tabs, sort, view, hidden files, filter, and search. Dual
-pane is two sessions. Shared chrome (sidebar, tree, toolbar, tab bar) reads and
-writes the active session. Clipboard, undo, settings, and theme stay global.
+pane is two sessions. Shared chrome (sidebar, tree, toolbar) reads and writes
+the active session. Each pane renders its own tab strip. Clipboard, undo,
+settings, and theme stay global.
 
 File-list, tab, search, and transfer workflows sit beside it under
 `frontend/src/lib/`. New UI belongs in `frontend/src/lib/components/`. New

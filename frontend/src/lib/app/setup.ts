@@ -328,29 +328,6 @@ export function initApp() {
       }
     };
 
-    const handlePaneCommand = (e: any) => {
-      const pane = normalizePaneId(e.detail?.pane, 'secondary');
-      const command = e.detail?.command;
-      activatePane(pane);
-      if (command === 'back') {
-        void navigateHistory(-1, pane);
-      } else if (command === 'forward') {
-        void navigateHistory(1, pane);
-      } else if (command === 'up') {
-        const parent = getParentPath(pathForPane(pane));
-        if (parent) void loadPaneDirectory(pane, parent);
-      } else if (command === 'navigate' && e.detail?.path) {
-        void loadPaneDirectory(pane, e.detail.path);
-      }
-    };
-
-    const handleSecondaryPaneCommand = (e: any) => {
-      handlePaneCommand({
-        ...e,
-        detail: { ...(e.detail || {}), pane: 'secondary' },
-      });
-    };
-
     const handlePaneActivate = (e: any) => {
       activatePane(normalizePaneId(e.detail?.pane, activePaneId()));
     };
@@ -452,24 +429,37 @@ export function initApp() {
       }
     };
 
-    const handleTabNew = () => {
-      void openNewTab();
+    const paneFromTabEvent = (e: any) => normalizePaneId(e.detail?.pane, activePaneId());
+
+    const handleTabNew = (e: any) => {
+      const pane = paneFromTabEvent(e);
+      activatePane(pane);
+      void openNewTab(pathForPane(pane) || appState.homePath, pane);
     };
 
     const handleTabSwitch = (e: any) => {
       const tabId = e.detail?.tabId;
-      if (tabId) void switchToTab(tabId);
+      if (!tabId) return;
+      const pane = paneFromTabEvent(e);
+      activatePane(pane);
+      void switchToTab(tabId, pane);
     };
 
     const handleTabClose = (e: any) => {
       const tabId = e.detail?.tabId;
-      if (tabId) void closeTab(tabId);
+      if (!tabId) return;
+      const pane = paneFromTabEvent(e);
+      activatePane(pane);
+      void closeTab(tabId, pane);
     };
 
     const handleTabFocusMove = (e: any) => {
       const tabId = e.detail?.tabId;
       const direction = Number(e.detail?.direction || 0);
-      if (tabId && direction) moveTabFocus(tabId, direction);
+      if (!tabId || !direction) return;
+      const pane = paneFromTabEvent(e);
+      activatePane(pane);
+      moveTabFocus(tabId, direction, pane);
     };
 
     const handleProperties = () => {
@@ -977,8 +967,6 @@ export function initApp() {
     document.addEventListener('simplefile:breadcrumb-navigate', handleOpenEntry);
     document.addEventListener('simplefile:file-list-sort', handleSort);
     document.addEventListener('simplefile:toolbar-command', handleToolbarCommand);
-    document.addEventListener('simplefile:secondary-pane-command', handleSecondaryPaneCommand);
-    document.addEventListener('simplefile:pane-command', handlePaneCommand);
     document.addEventListener('simplefile:pane-activate', handlePaneActivate);
     document.addEventListener('simplefile:quick-filter-input', handleQuickFilterInput);
     document.addEventListener('simplefile:quick-filter-clear', handleQuickFilterClear);
@@ -1035,8 +1023,6 @@ export function initApp() {
       document.removeEventListener('simplefile:breadcrumb-navigate', handleOpenEntry);
       document.removeEventListener('simplefile:file-list-sort', handleSort);
       document.removeEventListener('simplefile:toolbar-command', handleToolbarCommand);
-      document.removeEventListener('simplefile:secondary-pane-command', handleSecondaryPaneCommand);
-      document.removeEventListener('simplefile:pane-command', handlePaneCommand);
       document.removeEventListener('simplefile:pane-activate', handlePaneActivate);
       document.removeEventListener('simplefile:quick-filter-input', handleQuickFilterInput);
       document.removeEventListener('simplefile:quick-filter-clear', handleQuickFilterClear);

@@ -56,10 +56,12 @@ function checkIconOnlyCloseButtons(source, file) {
 }
 
 const contentShellPath = 'frontend/src/lib/components/layout-shell/ContentShell.svelte';
+const paneHeaderPath = 'frontend/src/lib/components/layout-shell/PaneHeader.svelte';
 const fileListPath = 'frontend/src/lib/components/file-list/FileList.svelte';
 const legacyTemplatePath = 'frontend/src/lib/components/legacy-shell-template.html';
 
 const contentShell = readText(contentShellPath);
+const paneHeader = readText(paneHeaderPath);
 const fileList = readText(fileListPath);
 const legacyTemplate = readText(legacyTemplatePath);
 
@@ -75,6 +77,11 @@ requireRegex(
     /id="pane-secondary"[^>]*data-pane="secondary"[^>]*role="region"[^>]*aria-label="Secondary file pane"/,
     'a labeled secondary pane region',
 );
+requireSnippet(contentShell, contentShellPath, '<PaneHeader pane="primary" />');
+requireSnippet(contentShell, contentShellPath, '<PaneHeader pane="secondary" />');
+requireSnippet(paneHeader, paneHeaderPath, 'role="tablist"');
+requireSnippet(paneHeader, paneHeaderPath, 'Primary pane tabs');
+requireSnippet(paneHeader, paneHeaderPath, 'Secondary pane tabs');
 requireSnippet(
     fileList,
     fileListPath,

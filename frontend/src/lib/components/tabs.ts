@@ -1,10 +1,12 @@
 import { mount, unmount } from 'svelte';
 
+import type { PaneId } from '../paneSession';
 import TabsBar from './tabs/TabsBar.svelte';
 import type { TabView } from './tabs/TabsBar.svelte';
 
 export type TabsBarProps = {
   activeTabId?: string | null;
+  pane?: PaneId;
   tabs?: TabView[];
 };
 
