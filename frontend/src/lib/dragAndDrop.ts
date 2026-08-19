@@ -3,11 +3,11 @@ import { state as appState } from './app/state.svelte.ts';
 import {
   currentSelectionPaths,
   pathContains,
+  pathForPane,
   pathsEqual,
   pathsFromNativeDropPayload,
   resetInternalDragState,
-  selectPaths,
-  selectSecondaryPaths,
+  selectPanePaths,
   transferEntriesWithSafety,
 } from './app/core';
 import { basename, getParentPath, joinPath } from './coreFileManager';
@@ -89,8 +89,7 @@ function pathFromNavigateAction(action: string | undefined): PathString | null {
 }
 
 function panePath(pane: 'primary' | 'secondary'): PathString | null {
-  if (pane === 'secondary') return (appState.secondaryPath || appState.currentPath || null) as PathString | null;
-  return (appState.currentPath || null) as PathString | null;
+  return (pathForPane(pane) || null) as PathString | null;
 }
 
 function destinationValidity(
@@ -346,17 +345,15 @@ function makeDragIcon(count: number): string {
 
 function selectionForDragSource(path: PathString, item: HTMLElement): PathString[] {
   const inSecondary = Boolean(item.closest('#secondary-file-list'));
-  const selected = inSecondary
-    ? [...(appState.secondarySelectedEntries || new Set<PathString>())] as PathString[]
-    : currentSelectionPaths();
+  const pane = inSecondary ? 'secondary' : 'primary';
+  const selected = currentSelectionPaths(pane);
 
   if (item.classList.contains('tree-item')) return [path];
 
   if (selected.includes(path)) return selected;
 
   const index = Number(item.dataset.index ?? -1);
-  if (inSecondary) selectSecondaryPaths([path], Number.isFinite(index) ? index : -1);
-  else selectPaths([path], Number.isFinite(index) ? index : -1);
+  selectPanePaths(pane, [path], Number.isFinite(index) ? index : -1);
   return [path];
 }
 
@@ -584,12 +581,12 @@ function handleNativeDrop(event: { payload: NativeFileDropEventPayload }): void 
     ? resolveDropAtPoint(point.x, point.y, sources)
     : {
         action: currentAction(isInternalPaths(sources)),
-        destination: appState.currentPath as PathString,
+        destination: pathForPane() as PathString,
         internal: isInternalPaths(sources),
         kind: 'pane' as const,
         label: '',
         target: document.getElementById('file-list'),
-        valid: Boolean(appState.currentPath),
+        valid: Boolean(pathForPane()),
       };
 
   completeDrop(sources, resolution);

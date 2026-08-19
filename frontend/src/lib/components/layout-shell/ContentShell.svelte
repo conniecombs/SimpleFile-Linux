@@ -4,6 +4,8 @@
   import { state as appState } from '../../app/state.svelte.ts';
   import FileListHeader from './FileListHeader.svelte';
   import FileList from '../file-list/FileList.svelte';
+  import PaneHeader from './PaneHeader.svelte';
+  import type { PaneId } from '../../paneSession';
 
   const PANE_MIN_PERCENT = 20;
   const PANE_MAX_PERCENT = 80;
@@ -11,25 +13,9 @@
   let contentArea: HTMLDivElement | undefined = $state();
   let panePrimary: HTMLDivElement | undefined = $state();
   let paneSecondary: HTMLDivElement | undefined = $state();
-  let secondaryPathInput: HTMLInputElement | undefined = $state();
-  let secondaryPathEditing = $state(false);
   let paneResizing = $state(false);
   let panePercent = $state(50);
   let cleanupPaneResize: (() => void) | undefined;
-
-  let secondaryPathSegments = $derived.by(() => {
-    if (!appState.secondaryPath) return [];
-    const parts = appState.secondaryPath.split(/[/\\]/).filter(Boolean);
-    let currentAccumulated = '';
-    return parts.map((part: string, index: number) => {
-      const isDrive = index === 0 && part.endsWith(':');
-      currentAccumulated += index === 0 ? (isDrive ? `${part}\\` : part) : `\\${part}`;
-      return {
-        label: part,
-        path: currentAccumulated,
-      };
-    });
-  });
 
   function clamp(value: number, min: number, max: number) {
     return Math.max(min, Math.min(max, value));
@@ -83,45 +69,11 @@
     }
   }
 
-  function emitSecondaryCommand(event: Event, command: string, path = '') {
-    event.currentTarget?.dispatchEvent(new CustomEvent('simplefile:secondary-pane-command', {
+  function activatePaneFromEvent(pane: PaneId) {
+    document.dispatchEvent(new CustomEvent('simplefile:pane-activate', {
       bubbles: true,
-      detail: { command, path },
+      detail: { pane },
     }));
-  }
-
-  function beginSecondaryPathEdit(event?: Event) {
-    event?.preventDefault();
-    secondaryPathEditing = true;
-    requestAnimationFrame(() => {
-      if (!secondaryPathInput) return;
-      secondaryPathInput.value = appState.secondaryPath || '';
-      secondaryPathInput.focus();
-      secondaryPathInput.select();
-    });
-  }
-
-  function endSecondaryPathEdit(resetValue = false) {
-    if (resetValue && secondaryPathInput) {
-      secondaryPathInput.value = appState.secondaryPath || '';
-    }
-    secondaryPathEditing = false;
-  }
-
-  function handleSecondaryPathKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      endSecondaryPathEdit(true);
-      return;
-    }
-
-    if (event.key !== 'Enter') return;
-    const target = event.currentTarget as HTMLInputElement;
-    const path = target.value.trim();
-    if (!path) return;
-    event.preventDefault();
-    emitSecondaryCommand(event, 'navigate', path);
-    endSecondaryPathEdit();
   }
 
   function beginPaneResize(event: MouseEvent) {
@@ -174,10 +126,32 @@
 </script>
 
 <div bind:this={contentArea} class:dual-pane={appState.dualPaneEnabled} class="content-area" id="content-area">
-  <div bind:this={panePrimary} class="pane primary-pane" id="pane-primary" data-pane="primary" role="region" aria-label="Primary file pane">
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    bind:this={panePrimary}
+    class:active={appState.activePane === 'primary'}
+    class="pane primary-pane"
+    id="pane-primary"
+    data-pane="primary"
+    role="region"
+    aria-label="Primary file pane"
+    onmousedown={() => activatePaneFromEvent('primary')}
+  >
+    {#if appState.dualPaneEnabled}
+      <PaneHeader pane="primary" />
+    {/if}
     <div class="file-container">
-      <FileListHeader pane="primary" />
-      <div class="quick-filter-bar" id="quick-filter-bar" style="display:none;" role="search" aria-label="Quick filter">
+      {#if !appState.panes.primary.isGridView}
+        <FileListHeader pane="primary" />
+      {/if}
+      <div
+        class="quick-filter-bar"
+        id="quick-filter-bar"
+        class:visible={Boolean(appState.panes.primary.filterOpen || appState.panes.primary.filterQuery)}
+        role="search"
+        aria-label="Quick filter"
+        hidden={!(appState.panes.primary.filterOpen || appState.panes.primary.filterQuery)}
+      >
         <span class="quick-filter-icon" aria-hidden="true">🔎</span>
         <input
           type="text"
@@ -185,9 +159,32 @@
           class="quick-filter-input"
           placeholder="Filter files… (Escape to clear)"
           aria-label="Filter current directory"
+          value={appState.panes.primary.filterQuery}
+          oninput={(event) => event.currentTarget.dispatchEvent(new CustomEvent('simplefile:quick-filter-input', {
+            bubbles: true,
+            detail: { pane: 'primary', query: (event.currentTarget as HTMLInputElement).value },
+          }))}
+          onkeydown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.currentTarget.dispatchEvent(new CustomEvent('simplefile:quick-filter-clear', {
+                bubbles: true,
+                detail: { pane: 'primary' },
+              }));
+            }
+          }}
         />
         <span class="quick-filter-count" id="filter-count"></span>
-        <button class="quick-filter-clear" id="filter-clear" title="Clear filter (Escape)" aria-label="Clear filter">✕</button>
+        <button
+          class="quick-filter-clear"
+          id="filter-clear"
+          title="Clear filter (Escape)"
+          aria-label="Clear filter"
+          onclick={(event) => event.currentTarget.dispatchEvent(new CustomEvent('simplefile:quick-filter-clear', {
+            bubbles: true,
+            detail: { pane: 'primary' },
+          }))}
+        >✕</button>
       </div>
       <FileList pane="primary" />
     </div>
@@ -204,63 +201,62 @@
     onkeydown={handlePaneKeydown}
   ></button>
 
-  <div bind:this={paneSecondary} class="pane secondary-pane" id="pane-secondary" data-pane="secondary" role="region" aria-label="Secondary file pane">
-    <div class="pane-header">
-      <div class="pane-nav-buttons">
-        <button class="toolbar-btn pane-nav-btn" id="btn-secondary-back" title="Go Back" aria-label="Go back in secondary pane" disabled={appState.secondaryHistoryIndex <= 0} onclick={(event) => emitSecondaryCommand(event, 'back')}>
-          <span class="icon" aria-hidden="true">◀</span>
-        </button>
-        <button class="toolbar-btn pane-nav-btn" id="btn-secondary-forward" title="Go Forward" aria-label="Go forward in secondary pane" disabled={appState.secondaryHistoryIndex >= appState.secondaryHistory.length - 1} onclick={(event) => emitSecondaryCommand(event, 'forward')}>
-          <span class="icon" aria-hidden="true">▶</span>
-        </button>
-        <button class="toolbar-btn pane-nav-btn" id="btn-secondary-up" title="Go Up" aria-label="Go to parent folder in secondary pane" disabled={!appState.secondaryPath} onclick={(event) => emitSecondaryCommand(event, 'up')}>
-          <span class="icon" aria-hidden="true">▲</span>
-        </button>
-      </div>
-      <div
-        class:editing={secondaryPathEditing}
-        class="pane-path-bar"
-        id="secondary-path-bar"
-        role="navigation"
-        aria-label="Secondary path"
-      >
-        <div class="breadcrumb" id="secondary-breadcrumb" role="list">
-          {#each secondaryPathSegments as segment, index}
-            <span role="listitem">
-              <button class="breadcrumb-segment" type="button" onclick={(event) => emitSecondaryCommand(event, 'navigate', segment.path)}>
-                {segment.label}
-              </button>
-            </span>
-            {#if index < secondaryPathSegments.length - 1}
-              <span class="breadcrumb-separator" aria-hidden="true">/</span>
-            {/if}
-          {/each}
-        </div>
-        <button
-          class="pane-path-edit-btn"
-          id="btn-secondary-edit-path"
-          type="button"
-          title="Edit secondary path"
-          aria-label="Edit secondary path"
-          onclick={beginSecondaryPathEdit}
-        >
-          <span class="icon" aria-hidden="true">âœŽ</span>
-        </button>
-        <input
-          bind:this={secondaryPathInput}
-          type="text"
-          id="secondary-path-input"
-          class="path-input"
-          placeholder="Enter path..."
-          value={appState.secondaryPath}
-          onblur={() => endSecondaryPathEdit()}
-          onkeydown={handleSecondaryPathKeydown}
-        />
-      </div>
-    </div>
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    bind:this={paneSecondary}
+    class:active={appState.activePane === 'secondary'}
+    class="pane secondary-pane"
+    id="pane-secondary"
+    data-pane="secondary"
+    role="region"
+    aria-label="Secondary file pane"
+    onmousedown={() => activatePaneFromEvent('secondary')}
+  >
+    <PaneHeader pane="secondary" />
 
     <div class="file-container">
-      <FileListHeader pane="secondary" />
+      {#if !appState.panes.secondary.isGridView}
+        <FileListHeader pane="secondary" />
+      {/if}
+      <div
+        class="quick-filter-bar"
+        class:visible={Boolean(appState.panes.secondary.filterOpen || appState.panes.secondary.filterQuery)}
+        role="search"
+        aria-label="Secondary quick filter"
+        hidden={!(appState.panes.secondary.filterOpen || appState.panes.secondary.filterQuery)}
+      >
+        <span class="quick-filter-icon" aria-hidden="true">🔎</span>
+        <input
+          type="text"
+          id="secondary-filter-input"
+          class="quick-filter-input"
+          placeholder="Filter files… (Escape to clear)"
+          aria-label="Filter secondary directory"
+          value={appState.panes.secondary.filterQuery}
+          oninput={(event) => event.currentTarget.dispatchEvent(new CustomEvent('simplefile:quick-filter-input', {
+            bubbles: true,
+            detail: { pane: 'secondary', query: (event.currentTarget as HTMLInputElement).value },
+          }))}
+          onkeydown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.currentTarget.dispatchEvent(new CustomEvent('simplefile:quick-filter-clear', {
+                bubbles: true,
+                detail: { pane: 'secondary' },
+              }));
+            }
+          }}
+        />
+        <button
+          class="quick-filter-clear"
+          title="Clear filter (Escape)"
+          aria-label="Clear secondary filter"
+          onclick={(event) => event.currentTarget.dispatchEvent(new CustomEvent('simplefile:quick-filter-clear', {
+            bubbles: true,
+            detail: { pane: 'secondary' },
+          }))}
+        >✕</button>
+      </div>
       <FileList pane="secondary" />
     </div>
   </div>

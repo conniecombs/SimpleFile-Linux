@@ -19,7 +19,8 @@
   let busyGroup = $state<string | null>(null);
 
   function pathForCurrentPane(): PathString {
-    return (appState.activePane === 'secondary' ? appState.secondaryPath : appState.currentPath) || '';
+    const pane = appState.activePane === 'secondary' ? 'secondary' : 'primary';
+    return appState.panes?.[pane]?.path || '';
   }
 
   function extraCount(): number {

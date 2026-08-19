@@ -6,8 +6,9 @@ import { createTabNavigationActions } from './fileNavigationTabs';
 import { runRuntimeAction } from './runtime';
 import type { SimpleFileAppState } from './appState';
 import type { DirectoryListing, FileEntry, FilePreview, PathString } from './types';
+import type { PaneId } from './paneSession';
 
-export type PaneId = 'primary' | 'secondary';
+export type { PaneId } from './paneSession';
 
 export type FileNavigationActionName =
   | 'activatePane'

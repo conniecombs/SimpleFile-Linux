@@ -26,6 +26,7 @@ import {
     getAllTags,
     getEntryInfo,
     getImageMetadata,
+    getGitFileStatuses,
     getHomeDir,
     listDirectory,
     listDrives,
@@ -117,7 +118,15 @@ import {
   };
 
 import { localState } from './localState.svelte';
-import type { PaneId } from "../fileNavigation.js";
+import type { PaneId } from "../paneSession.js";
+import {
+  breadcrumbSegments,
+  normalizePaneId,
+  otherPaneId,
+  PANE_IDS,
+  paneSession,
+  recordPaneHistory,
+} from "../paneSession.js";
 import type { TransferAction } from "../transferPathUtils.js";
 
 import { isArchiveEntry, showArchiveContentsFlow, showCreateArchiveFlow, extractArchiveFlow, archiveExtractFolderNameForPath } from "./archive.js";
@@ -219,13 +228,14 @@ const defaultColorLabels = [
       };
     });
 
-    appState.entries = withMetrics(appState.entries);
-    appState.secondaryEntries = withMetrics(appState.secondaryEntries || []);
-    if (appState._savedEntries) {
-      appState._savedEntries = withMetrics(appState._savedEntries);
+    for (const pane of PANE_IDS) {
+      const session = paneSession(appState, pane);
+      session.entries = withMetrics(session.entries);
+      if (session.search.savedEntries) {
+        session.search.savedEntries = withMetrics(session.search.savedEntries);
+      }
+      applyPaneFilters(pane);
     }
-    applyEntryFilters();
-    if (appState.dualPaneEnabled) applySecondaryEntryFilters();
   }
 
   export async function showFolderMetricsFlow() {
@@ -420,27 +430,49 @@ const defaultColorLabels = [
 
   export function applyPersistedViewSettings() {
     appState.theme = appState.settings?.theme || appState.theme || 'dark';
-    appState.isGridView = appState.settings?.defaultView === 'grid';
     appState.iconSize = Number(appState.settings?.defaultIconSize || appState.iconSize || 64);
-    appState.showHiddenFiles = Boolean(appState.settings?.showHidden);
     document.documentElement.style.setProperty('--icon-size', `${appState.iconSize}px`);
+    if (!appState.paneSessionsRestored) {
+      const isGrid = appState.settings?.defaultView === 'grid';
+      const showHidden = Boolean(appState.settings?.showHidden);
+      for (const pane of PANE_IDS) {
+        const session = paneSession(appState, pane);
+        session.isGridView = isGrid;
+        session.showHiddenFiles = showHidden;
+      }
+    }
     applyTheme();
   }
 
-  export function entriesForPane(pane: PaneId = appState.activePane as PaneId) {
-    return pane === 'secondary' ? (appState.secondaryEntries || []) : appState.entries;
+  export function activePaneId(): PaneId {
+    return normalizePaneId(appState.activePane);
   }
 
-  export function filteredEntriesForPane(pane: PaneId = appState.activePane as PaneId) {
-    return pane === 'secondary' ? (appState.secondaryFilteredEntries || []) : appState.filteredEntries;
+  export function activatePane(pane: PaneId) {
+    if (!appState.dualPaneEnabled && pane === 'secondary') return;
+    appState.activePane = pane;
+    updateStatusBar();
+    void updatePreviewPane();
   }
 
-  export function selectedSetForPane(pane: PaneId = appState.activePane as PaneId) {
-    return pane === 'secondary' ? (appState.secondarySelectedEntries || new Set<PathString>()) : appState.selectedEntries;
+  export function sessionForPane(pane: PaneId = activePaneId()) {
+    return paneSession(appState, pane);
   }
 
-  export function pathForPane(pane: PaneId = appState.activePane as PaneId) {
-    return pane === 'secondary' ? appState.secondaryPath : appState.currentPath;
+  export function entriesForPane(pane: PaneId = activePaneId()) {
+    return sessionForPane(pane).entries || [];
+  }
+
+  export function filteredEntriesForPane(pane: PaneId = activePaneId()) {
+    return sessionForPane(pane).filteredEntries || [];
+  }
+
+  export function selectedSetForPane(pane: PaneId = activePaneId()) {
+    return sessionForPane(pane).selectedEntries || new Set<PathString>();
+  }
+
+  export function pathForPane(pane: PaneId = activePaneId()) {
+    return sessionForPane(pane).path || '';
   }
 
   export function selectedEntriesInView(pane: PaneId = appState.activePane as PaneId) {
@@ -458,50 +490,55 @@ const defaultColorLabels = [
 
   export function updateStatusBar() {
     renderStatusBar(document.getElementById('status-bar'), {
-      currentPath: appState.currentPath,
+      currentPath: pathForPane(),
       selectedCount: selectedSetForPane().size,
       selectedSizeText: selectedSizeText(),
       totalItems: filteredEntriesForPane().length,
     });
   }
 
-  export function applyEntryFilters() {
-    appState.filteredEntries = visibleEntries(appState.entries, {
-      filterQuery: appState.filterQuery,
-      showHidden: appState.showHiddenFiles,
-      sortAsc: appState.sortAsc,
-      sortBy: appState.sortBy,
+  export function applyPaneFilters(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.filteredEntries = visibleEntries(session.entries, {
+      filterQuery: session.filterQuery,
+      showHidden: session.showHiddenFiles,
+      sortAsc: session.sortAsc,
+      sortBy: session.sortBy,
     });
-    updateStatusBar();
+    if (pane === activePaneId()) updateStatusBar();
+  }
+
+  export function applyEntryFilters() {
+    applyPaneFilters('primary');
   }
 
   export function applySecondaryEntryFilters() {
-    appState.secondaryFilteredEntries = visibleEntries(appState.secondaryEntries || [], {
-      filterQuery: '',
-      showHidden: appState.showHiddenFiles,
-      sortAsc: appState.sortAsc,
-      sortBy: appState.sortBy,
-    });
-    updateStatusBar();
+    applyPaneFilters('secondary');
   }
 
-  export function syncActiveTab() {
-    if (!appState.currentPath) return;
+  export function applyAllPaneFilters() {
+    applyPaneFilters('primary');
+    applyPaneFilters('secondary');
+  }
 
-    const activeTabId = appState.activeTabId || `tab-${Date.now()}`;
+  export function syncActiveTab(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    if (!session.path) return;
+
+    const activeTabId = session.activeTabId || `tab-${Date.now()}`;
     const tab = {
       id: activeTabId,
-      path: appState.currentPath,
-      title: basename(appState.currentPath),
-      history: [...appState.history],
-      historyIndex: appState.historyIndex,
+      path: session.path,
+      title: basename(session.path),
+      history: [...session.history],
+      historyIndex: session.historyIndex,
     };
 
-    const existingIndex = appState.tabs.findIndex((candidate: { id: string }) => candidate.id === activeTabId);
-    appState.tabs = existingIndex >= 0
-      ? appState.tabs.map((candidate: { id: string }) => candidate.id === activeTabId ? tab : candidate)
-      : [...appState.tabs, tab];
-    appState.activeTabId = activeTabId;
+    const existingIndex = session.tabs.findIndex((candidate) => candidate.id === activeTabId);
+    session.tabs = existingIndex >= 0
+      ? session.tabs.map((candidate) => candidate.id === activeTabId ? tab : candidate)
+      : [...session.tabs, tab];
+    session.activeTabId = activeTabId;
     saveTabs();
   }
 
@@ -515,96 +552,68 @@ const defaultColorLabels = [
     };
   }
 
-  export async function openNewTab(path: PathString = appState.currentPath || appState.homePath) {
+  export async function openNewTab(path: PathString = pathForPane() || appState.homePath, pane: PaneId = activePaneId()) {
     if (!path) return;
+    const session = sessionForPane(pane);
     const tab = createTabState(path);
-    appState.tabs = [...appState.tabs, tab];
-    appState.activeTabId = tab.id;
-    appState.history = [...tab.history];
-    appState.historyIndex = tab.historyIndex;
+    session.tabs = [...session.tabs, tab];
+    session.activeTabId = tab.id;
+    session.history = [...tab.history];
+    session.historyIndex = tab.historyIndex;
     saveTabs();
-    await loadDirectory(path, 'replace-current');
+    await loadPaneDirectory(pane, path, 'replace-current');
     window.setTimeout(() => {
       document.querySelector<HTMLElement>(`[data-tab-id="${tab.id}"]`)?.focus();
     }, 0);
   }
 
-  export async function switchToTab(tabId: string) {
-    const tab = appState.tabs.find((candidate: { id: string }) => candidate.id === tabId);
+  export async function switchToTab(tabId: string, pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    const tab = session.tabs.find((candidate: { id: string }) => candidate.id === tabId);
     if (!tab) return;
-    appState.activeTabId = tab.id;
-    appState.history = [...(tab.history || [tab.path])];
-    appState.historyIndex = typeof tab.historyIndex === 'number' ? tab.historyIndex : appState.history.length - 1;
-    await loadDirectory(tab.path, 'none');
+    session.activeTabId = tab.id;
+    session.history = [...(tab.history || [tab.path])];
+    session.historyIndex = typeof tab.historyIndex === 'number' ? tab.historyIndex : session.history.length - 1;
+    await loadPaneDirectory(pane, tab.path, 'none');
   }
 
-  export async function closeTab(tabId: string) {
-    const closingIndex = appState.tabs.findIndex((tab: { id: string }) => tab.id === tabId);
+  export async function closeTab(tabId: string, pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    const closingIndex = session.tabs.findIndex((tab: { id: string }) => tab.id === tabId);
     if (closingIndex < 0) return;
 
-    const remainingTabs = appState.tabs.filter((tab: { id: string }) => tab.id !== tabId);
+    const remainingTabs = session.tabs.filter((tab: { id: string }) => tab.id !== tabId);
     if (remainingTabs.length === 0) {
-      appState.tabs = [];
-      await openNewTab(appState.homePath || appState.currentPath);
+      session.tabs = [];
+      await openNewTab(appState.homePath || session.path, pane);
       return;
     }
 
-    appState.tabs = remainingTabs;
-    if (appState.activeTabId !== tabId) {
+    session.tabs = remainingTabs;
+    if (session.activeTabId !== tabId) {
       saveTabs();
       return;
     }
 
     const nextTab = remainingTabs[Math.min(closingIndex, remainingTabs.length - 1)];
     saveTabs();
-    await switchToTab(nextTab.id);
+    await switchToTab(nextTab.id, pane);
   }
 
-  export function moveTabFocus(tabId: string, direction: number) {
-    const tabs = appState.tabs;
+  export function moveTabFocus(tabId: string, direction: number, pane: PaneId = activePaneId()) {
+    const tabs = sessionForPane(pane).tabs;
     const index = tabs.findIndex((tab: { id: string }) => tab.id === tabId);
     if (index < 0 || tabs.length === 0) return;
     const next = tabs[(index + direction + tabs.length) % tabs.length];
     document.querySelector<HTMLElement>(`[data-tab-id="${next.id}"]`)?.focus();
   }
 
-  export function recordHistory(path: PathString, mode: HistoryMode) {
-    if (mode === 'none') return;
-
-    if (mode === 'replace-current' && appState.historyIndex >= 0) {
-      const nextHistory = [...appState.history];
-      nextHistory[appState.historyIndex] = path;
-      appState.history = nextHistory;
-      return;
-    }
-
-    if (appState.history[appState.historyIndex] === path) {
-      return;
-    }
-
-    appState.history = [...appState.history.slice(0, appState.historyIndex + 1), path];
-    appState.historyIndex = appState.history.length - 1;
+  export function recordHistory(path: PathString, mode: HistoryMode, pane: PaneId = 'primary') {
+    recordPaneHistory(sessionForPane(pane), path, mode);
   }
 
   export function recordSecondaryHistory(path: PathString, mode: HistoryMode) {
-    if (mode === 'none') return;
-
-    if (mode === 'replace-current' && appState.secondaryHistoryIndex >= 0) {
-      const nextHistory = [...appState.secondaryHistory];
-      nextHistory[appState.secondaryHistoryIndex] = path;
-      appState.secondaryHistory = nextHistory;
-      return;
-    }
-
-    if (appState.secondaryHistory[appState.secondaryHistoryIndex] === path) {
-      return;
-    }
-
-    appState.secondaryHistory = [
-      ...appState.secondaryHistory.slice(0, appState.secondaryHistoryIndex + 1),
-      path,
-    ];
-    appState.secondaryHistoryIndex = appState.secondaryHistory.length - 1;
+    recordPaneHistory(sessionForPane('secondary'), path, mode);
   }
 
   export async function updatePreviewPane() {
@@ -666,48 +675,147 @@ const defaultColorLabels = [
     void clearPreviewPaneContent();
   }
 
-  export function selectPaths(paths: PathString[], focusedIndex = -1) {
-    appState.selectedEntries = new Set(paths);
-    appState.activePane = 'primary';
-    appState.focusedIndex = focusedIndex;
-    appState.lastSelectedIndex = focusedIndex;
+  export function selectPanePaths(
+    pane: PaneId,
+    paths: PathString[],
+    focusedIndex = -1,
+    options: { keepAnchor?: boolean } = {},
+  ) {
+    const session = sessionForPane(pane);
+    const anchor = session.lastSelectedIndex;
+    session.selectedEntries = new Set(paths);
+    session.focusedIndex = focusedIndex;
+    session.lastSelectedIndex = options.keepAnchor && anchor >= 0 ? anchor : focusedIndex;
+    if (appState.dualPaneEnabled || pane === 'primary') {
+      appState.activePane = pane;
+    }
     updateStatusBar();
     void updatePreviewPane();
   }
 
+  export function selectPaths(paths: PathString[], focusedIndex = -1) {
+    selectPanePaths('primary', paths, focusedIndex);
+  }
+
   export function selectSecondaryPaths(paths: PathString[], focusedIndex = -1) {
-    appState.secondarySelectedEntries = new Set(paths);
-    appState.activePane = 'secondary';
-    appState.focusedIndex = focusedIndex;
-    appState.lastSelectedIndex = focusedIndex;
-    updateStatusBar();
+    selectPanePaths('secondary', paths, focusedIndex);
   }
 
   export function selectAllEntries() {
-    const activePane = appState.activePane as PaneId;
-    const entries = filteredEntriesForPane(activePane);
-    if (activePane === 'secondary') {
-      selectSecondaryPaths(entries.map((entry: FileEntry) => entry.path), entries.length - 1);
-    } else {
-      selectPaths(entries.map((entry: FileEntry) => entry.path), entries.length - 1);
-    }
+    const pane = activePaneId();
+    const entries = filteredEntriesForPane(pane);
+    selectPanePaths(pane, entries.map((entry: FileEntry) => entry.path), entries.length - 1);
+  }
+
+  export function findEntryInPane(pane: PaneId, path: PathString) {
+    const session = sessionForPane(pane);
+    return session.entries.find((entry: FileEntry) => entry.path === path)
+      ?? session.filteredEntries.find((entry: FileEntry) => entry.path === path)
+      ?? null;
   }
 
   export function findEntry(path: PathString) {
-    return appState.entries.find((entry: FileEntry) => entry.path === path)
-      ?? appState.filteredEntries.find((entry: FileEntry) => entry.path === path)
-      ?? null;
+    return findEntryInPane('primary', path);
   }
 
   export function findSecondaryEntry(path: PathString) {
-    return (appState.secondaryEntries || []).find((entry: FileEntry) => entry.path === path)
-      ?? (appState.secondaryFilteredEntries || []).find((entry: FileEntry) => entry.path === path)
-      ?? null;
+    return findEntryInPane('secondary', path);
   }
 
-  export function currentSelectionPaths() {
-    const source = appState.activePane === 'secondary' ? appState.secondarySelectedEntries : appState.selectedEntries;
-    return [...(source || new Set<PathString>())] as PathString[];
+  export function currentSelectionPaths(pane: PaneId = activePaneId()) {
+    return [...(selectedSetForPane(pane) || new Set<PathString>())] as PathString[];
+  }
+
+  export function movePaneFocus(delta: number, extendSelection = false, pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    const entries = session.filteredEntries || [];
+    if (entries.length === 0) return;
+
+    const current = session.focusedIndex >= 0 ? session.focusedIndex : 0;
+    const nextIndex = Math.max(0, Math.min(entries.length - 1, current + delta));
+    const entry = entries[nextIndex];
+    if (!entry) return;
+
+    if (extendSelection && session.lastSelectedIndex >= 0) {
+      const start = Math.min(session.lastSelectedIndex, nextIndex);
+      const end = Math.max(session.lastSelectedIndex, nextIndex);
+      selectPanePaths(
+        pane,
+        entries.slice(start, end + 1).map((item: FileEntry) => item.path),
+        nextIndex,
+        { keepAnchor: true },
+      );
+      return;
+    }
+
+    selectPanePaths(pane, [entry.path], nextIndex);
+  }
+
+  export function focusPaneEdge(which: 'first' | 'last', pane: PaneId = activePaneId()) {
+    const entries = filteredEntriesForPane(pane);
+    if (entries.length === 0) return;
+    const index = which === 'first' ? 0 : entries.length - 1;
+    selectPanePaths(pane, [entries[index].path], index);
+  }
+
+  export function handlePaneTypeAhead(char: string, pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.typeAheadBuffer = `${session.typeAheadBuffer || ''}${char.toLowerCase()}`;
+    window.clearTimeout(session.typeAheadTimeout ?? undefined);
+    session.typeAheadTimeout = window.setTimeout(() => {
+      session.typeAheadBuffer = '';
+    }, 700);
+    const match = session.filteredEntries.findIndex((entry: FileEntry) =>
+      String(entry.name || '').toLowerCase().startsWith(session.typeAheadBuffer),
+    );
+    if (match >= 0) {
+      selectPanePaths(pane, [session.filteredEntries[match].path], match);
+    }
+  }
+
+  export function setPaneFilterQuery(pane: PaneId, query: string) {
+    const session = sessionForPane(pane);
+    session.filterQuery = query;
+    session.filterOpen = Boolean(query) || session.filterOpen;
+    applyPaneFilters(pane);
+  }
+
+  export function openPaneFilter(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.filterOpen = true;
+  }
+
+  export function closePaneFilter(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.filterOpen = false;
+    session.filterQuery = '';
+    applyPaneFilters(pane);
+  }
+
+  export function togglePaneHiddenFiles(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.showHiddenFiles = !session.showHiddenFiles;
+    applyPaneFilters(pane);
+  }
+
+  export function togglePaneView(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.isGridView = !session.isGridView;
+  }
+
+  export function sortPane(pane: PaneId, sortBy: string) {
+    const session = sessionForPane(pane);
+    if (session.sortBy === sortBy) {
+      session.sortAsc = !session.sortAsc;
+    } else {
+      session.sortBy = sortBy;
+      session.sortAsc = true;
+    }
+    applyPaneFilters(pane);
+  }
+
+  export function pathSegmentsFor(path: PathString) {
+    return breadcrumbSegments(path);
   }
 
   export function closeSettingsModal() {
@@ -923,17 +1031,48 @@ const defaultColorLabels = [
 
 
   export function startDirectoryWatch(path: PathString) {
-    if (!path || localState.watchedDirectoryPath === path) return;
-    localState.watchedDirectoryPath = path;
-    watchDirectory(path).catch((error) => {
-      localState.watchedDirectoryPath = null;
-      console.warn('Directory watch unavailable:', error);
-    });
+    void syncDirectoryWatches(path);
+  }
+
+  export async function syncDirectoryWatches(preferredPath?: PathString) {
+    const nextPaths = [];
+    const primaryPath = pathForPane('primary');
+    const secondaryPath = pathForPane('secondary');
+    if (primaryPath) nextPaths.push(primaryPath);
+    if (appState.dualPaneEnabled && secondaryPath && secondaryPath !== primaryPath) {
+      nextPaths.push(secondaryPath);
+    }
+    if (preferredPath && !nextPaths.includes(preferredPath)) {
+      nextPaths.push(preferredPath);
+    }
+
+    const uniquePaths = [...new Set(nextPaths.filter(Boolean))];
+    const current = localState.watchedDirectoryPaths || [];
+    const unchanged = uniquePaths.length === current.length
+      && uniquePaths.every((path) => current.includes(path));
+    if (unchanged) return;
+
+    try {
+      await unwatchDirectory();
+    } catch {
+      // Watcher may already be idle.
+    }
+    localState.watchedDirectoryPaths = [];
+    localState.watchedDirectoryPath = uniquePaths[0] || null;
+
+    for (const path of uniquePaths) {
+      try {
+        await watchDirectory(path);
+        localState.watchedDirectoryPaths = [...localState.watchedDirectoryPaths, path];
+      } catch (error) {
+        console.warn('Directory watch unavailable:', error);
+      }
+    }
   }
 
   export function scheduleFileChangeRefresh(path: PathString) {
-    const touchesPrimary = appState.currentPath && pathContains(appState.currentPath, path);
-    const touchesSecondary = appState.secondaryPath && pathContains(appState.secondaryPath, path);
+    const touchesPrimary = pathForPane('primary') && pathContains(pathForPane('primary'), path);
+    const touchesSecondary = pathForPane('secondary') && pathContains(pathForPane('secondary'), path);
     if (!touchesPrimary && !touchesSecondary) return;
 
     if (localState.fileChangeRefreshTimer !== null) {
@@ -942,87 +1081,128 @@ const defaultColorLabels = [
 
     localState.fileChangeRefreshTimer = window.setTimeout(() => {
       localState.fileChangeRefreshTimer = null;
-      if (touchesPrimary) void refreshCurrentDirectory();
-      if (touchesSecondary) void refreshSecondaryPane();
+      if (touchesPrimary) void refreshPane('primary');
+      if (touchesSecondary) void refreshPane('secondary');
     }, 250);
   }
 
-  export async function loadDirectory(path: string, historyMode: HistoryMode = 'push') {
-    const token = ++localState.navigationToken;
-    try {
-      resetSearchStateForNavigation();
-      appState.isNavigating = true;
-      appState.currentPath = path;
-      appState.entries = [];
-      appState.filteredEntries = [];
-      const listing = await getActiveFileSystem().listDirectory(path);
-      if (token !== localState.navigationToken) return;
+  export async function loadPaneDirectory(
+    pane: PaneId,
+    path: string,
+    historyMode: HistoryMode = 'push',
+    options: { activate?: boolean } = {},
+  ) {
+    if (!path) return;
+    const targetPane = normalizePaneId(pane);
+    const activate = options.activate !== false;
+    const token = ++localState.navigationTokens[targetPane];
+    localState.navigationToken += 1;
+    const session = sessionForPane(targetPane);
 
-      appState.currentPath = listing.path;
-      appState.entries = listing.entries;
-      appState.selectedEntries = new Set();
-      appState.focusedIndex = -1;
-      appState.lastSelectedIndex = -1;
-      appState.filterQuery = '';
-      recordHistory(listing.path, historyMode);
-      applyEntryFilters();
-      startDirectoryWatch(listing.path);
+    try {
+      if (activate) appState.activePane = targetPane;
+      appState.isNavigating = true;
+      resetSearchStateForNavigation(targetPane);
+      session.path = path;
+      session.entries = [];
+      session.filteredEntries = [];
+      const listing = await getActiveFileSystem().listDirectory(path);
+      if (token !== localState.navigationTokens[targetPane]) return;
+
+      let entries = listing.entries;
+      if (appState.settings?.enableGitIntegration) {
+        try {
+          const statuses = await getGitFileStatuses(listing.path);
+          entries = listing.entries.map((entry: FileEntry) => (
+            statuses[entry.name] ? { ...entry, git_status: statuses[entry.name] } : entry
+          ));
+        } catch {
+          // Not a git repo, or git is unavailable.
+        }
+      }
+
+      session.path = listing.path;
+      session.entries = entries;
+      session.selectedEntries = new Set();
+      session.focusedIndex = -1;
+      session.lastSelectedIndex = -1;
+      session.filterQuery = '';
+      session.filterOpen = false;
+      recordPaneHistory(session, listing.path, historyMode);
+      applyPaneFilters(targetPane);
+      void syncDirectoryWatches(listing.path);
       addRecentLocation(listing.path);
-      syncActiveTab();
-      void updatePreviewPane();
+      syncActiveTab(targetPane);
+      if (targetPane === activePaneId()) void updatePreviewPane();
     } catch (e) {
       showError(e);
       console.error('Failed to load directory:', e);
     } finally {
-      if (token === localState.navigationToken) {
+      if (token === localState.navigationTokens[targetPane]) {
         appState.isNavigating = false;
       }
     }
   }
 
+  export async function loadDirectory(path: string, historyMode: HistoryMode = 'push') {
+    await loadPaneDirectory(activePaneId(), path, historyMode);
+  }
+
   export async function loadSecondaryDirectory(path: PathString, historyMode: HistoryMode = 'push', activate = true) {
-    if (!path) return;
-    try {
-      const listing = await getActiveFileSystem().listDirectory(path);
-      appState.secondaryPath = listing.path;
-      appState.secondaryEntries = listing.entries;
-      appState.secondarySelectedEntries = new Set();
-      if (activate) appState.activePane = 'secondary';
-      recordSecondaryHistory(listing.path, historyMode);
-      applySecondaryEntryFilters();
-    } catch (error) {
-      showError(error);
-    }
+    await loadPaneDirectory('secondary', path, historyMode, { activate });
+  }
+
+  export async function refreshPane(pane: PaneId) {
+    const session = sessionForPane(pane);
+    if (!session.path) return;
+    const selectedPaths = new Set(session.selectedEntries || new Set<PathString>());
+    await loadPaneDirectory(pane, session.path, 'none', { activate: false });
+    const visiblePaths = new Set(session.filteredEntries.map((entry: FileEntry) => entry.path));
+    session.selectedEntries = new Set([...selectedPaths].filter((itemPath) => visiblePaths.has(itemPath)));
   }
 
   export async function refreshCurrentDirectory() {
-    if (appState.currentPath) {
-      await loadDirectory(appState.currentPath, 'none');
-    }
+    await refreshPane(activePaneId());
   }
 
   export async function refreshSecondaryPane() {
-    if (!appState.secondaryPath) return;
-    const selectedPaths = new Set(appState.secondarySelectedEntries || new Set<PathString>());
-    await loadSecondaryDirectory(appState.secondaryPath, 'none', false);
-    const visiblePaths = new Set(appState.secondaryFilteredEntries.map((entry: FileEntry) => entry.path));
-    appState.secondarySelectedEntries = new Set(
-      [...selectedPaths].filter((path) => visiblePaths.has(path)),
-    );
+    await refreshPane('secondary');
+  }
+
+  export async function navigatePaneHistory(pane: PaneId, delta: number) {
+    const session = sessionForPane(pane);
+    const nextIndex = session.historyIndex + delta;
+    if (nextIndex < 0 || nextIndex >= session.history.length) return;
+    session.historyIndex = nextIndex;
+    await loadPaneDirectory(pane, session.history[nextIndex], 'none');
   }
 
   export async function navigateSecondaryHistory(delta: number) {
-    const nextIndex = appState.secondaryHistoryIndex + delta;
-    if (nextIndex < 0 || nextIndex >= appState.secondaryHistory.length) return;
-    appState.secondaryHistoryIndex = nextIndex;
-    await loadSecondaryDirectory(appState.secondaryHistory[nextIndex], 'none');
+    await navigatePaneHistory('secondary', delta);
   }
 
   export async function refreshTransferSurfaces() {
-    await refreshCurrentDirectory();
-    if (appState.dualPaneEnabled && appState.secondaryPath) {
-      await refreshSecondaryPane();
+    await refreshPane('primary');
+    if (appState.dualPaneEnabled && pathForPane('secondary')) {
+      await refreshPane('secondary');
     }
+  }
+
+  export async function toggleDualPane() {
+    appState.dualPaneEnabled = !appState.dualPaneEnabled;
+    if (appState.dualPaneEnabled) {
+      const secondary = sessionForPane('secondary');
+      if (!secondary.path) {
+        const sourcePath = pathForPane('primary') || appState.homePath;
+        if (sourcePath) await loadPaneDirectory('secondary', sourcePath, 'replace-current', { activate: false });
+      }
+      appState.activePane = 'primary';
+    } else {
+      appState.activePane = 'primary';
+    }
+    saveTabs();
+    void syncDirectoryWatches();
+    updateStatusBar();
   }
 
   export function getUndoStack(): UndoEntry[] {
@@ -1072,23 +1252,20 @@ const defaultColorLabels = [
     }
   }
 
-  export async function navigateHistory(delta: number) {
-    const nextIndex = appState.historyIndex + delta;
-    if (nextIndex < 0 || nextIndex >= appState.history.length) return;
-    appState.historyIndex = nextIndex;
-    await loadDirectory(appState.history[nextIndex], 'none');
-    syncActiveTab();
+  export async function navigateHistory(delta: number, pane: PaneId = activePaneId()) {
+    await navigatePaneHistory(pane, delta);
+    syncActiveTab(pane);
   }
 
-  export async function navigateSpecial(command: string) {
+  export async function navigateSpecial(command: string, pane: PaneId = activePaneId()) {
     if (command === 'navigateHome') {
-      await loadDirectory(appState.homePath);
+      await loadPaneDirectory(pane, appState.homePath);
       return;
     }
 
     const xdgKey = command.replace('navigate', '').toLowerCase();
     if (appState.xdgDirs && typeof appState.xdgDirs[xdgKey] === 'string') {
-      await loadDirectory(appState.xdgDirs[xdgKey]);
+      await loadPaneDirectory(pane, appState.xdgDirs[xdgKey]);
       return;
     }
 
@@ -1101,7 +1278,7 @@ const defaultColorLabels = [
 
     const folder = specialFolders[command];
     if (folder) {
-      await loadDirectory(joinPath(appState.homePath, folder));
+      await loadPaneDirectory(pane, joinPath(appState.homePath, folder));
     }
   }
 
@@ -1321,7 +1498,7 @@ const defaultColorLabels = [
     }
 
     try {
-      const activePane = appState.activePane as PaneId;
+      const activePane = activePaneId();
       const parentPathAtCreation = pathForPane(activePane);
       const newPath = await getActiveFileSystem().createDirectory(parentPathAtCreation, name);
       pushUndoEntry({
@@ -1330,15 +1507,9 @@ const defaultColorLabels = [
         redo: () => getActiveFileSystem().createDirectory(parentPathAtCreation, name),
       });
       showSuccess(`Created folder "${name}"`);
-      if (activePane === 'secondary') {
-        await refreshSecondaryPane();
-        const index = appState.secondaryFilteredEntries.findIndex((entry: FileEntry) => entry.path === newPath);
-        selectSecondaryPaths([newPath], index);
-      } else {
-        await refreshCurrentDirectory();
-        const index = appState.filteredEntries.findIndex((entry: FileEntry) => entry.path === newPath);
-        selectPaths([newPath], index);
-      }
+      await refreshPane(activePane);
+      const index = filteredEntriesForPane(activePane).findIndex((entry: FileEntry) => entry.path === newPath);
+      selectPanePaths(activePane, [newPath], index);
     } catch (error) {
       showError(error);
     }
@@ -1360,7 +1531,7 @@ const defaultColorLabels = [
     }
 
     try {
-      const activePane = appState.activePane as PaneId;
+      const activePane = activePaneId();
       const parentPathAtCreation = pathForPane(activePane);
       const newPath = await getActiveFileSystem().createFile(parentPathAtCreation, name);
       pushUndoEntry({
@@ -1369,25 +1540,19 @@ const defaultColorLabels = [
         redo: () => getActiveFileSystem().createFile(parentPathAtCreation, name),
       });
       showSuccess(`Created file "${name}"`);
-      if (activePane === 'secondary') {
-        await refreshSecondaryPane();
-        const index = appState.secondaryFilteredEntries.findIndex((entry: FileEntry) => entry.path === newPath);
-        selectSecondaryPaths([newPath], index);
-      } else {
-        await refreshCurrentDirectory();
-        const index = appState.filteredEntries.findIndex((entry: FileEntry) => entry.path === newPath);
-        selectPaths([newPath], index);
-      }
+      await refreshPane(activePane);
+      const index = filteredEntriesForPane(activePane).findIndex((entry: FileEntry) => entry.path === newPath);
+      selectPanePaths(activePane, [newPath], index);
     } catch (error) {
       showError(error);
     }
   }
 
   export async function renameSelectedFlow() {
-    const activePane = appState.activePane as PaneId;
+    const activePane = activePaneId();
     if (selectedSetForPane(activePane).size !== 1) return;
     const path = currentSelectionPaths()[0];
-    const entry = activePane === 'secondary' ? findSecondaryEntry(path) : findEntry(path);
+    const entry = findEntryInPane(activePane, path);
     if (!entry) return;
 
     const result = await showDialog({
@@ -1412,22 +1577,16 @@ const defaultColorLabels = [
         redo: () => getActiveFileSystem().renameEntry(path, newName),
       });
       showSuccess(`Renamed to "${newName}"`);
-      if (activePane === 'secondary') {
-        await refreshSecondaryPane();
-        const index = appState.secondaryFilteredEntries.findIndex((candidate: FileEntry) => candidate.path === newPath);
-        selectSecondaryPaths([newPath], index);
-      } else {
-        await refreshCurrentDirectory();
-        const index = appState.filteredEntries.findIndex((candidate: FileEntry) => candidate.path === newPath);
-        selectPaths([newPath], index);
-      }
+      await refreshPane(activePane);
+      const index = filteredEntriesForPane(activePane).findIndex((candidate: FileEntry) => candidate.path === newPath);
+      selectPanePaths(activePane, [newPath], index);
     } catch (error) {
       showError(error);
     }
   }
 
   export async function deleteSelectedFlow() {
-    const activePane = appState.activePane as PaneId;
+    const activePane = activePaneId();
     const paths = currentSelectionPaths();
     if (paths.length === 0) return;
 
@@ -1454,8 +1613,7 @@ const defaultColorLabels = [
         hideProgressFlow();
       }
       showSuccess(`Deleted ${paths.length} item${paths.length === 1 ? '' : 's'}`);
-      if (activePane === 'secondary') await refreshSecondaryPane();
-      else await refreshCurrentDirectory();
+      await refreshPane(activePane);
     } catch (error) {
       if (typeof error === 'string' && error.startsWith('TRASH_UNAVAILABLE')) {
         try {
@@ -1466,8 +1624,7 @@ const defaultColorLabels = [
           for (const path of paths) await getActiveFileSystem().deleteEntry(path);
           updateProgressFlow(100, `Deleted ${paths.length} items`);
           hideProgressFlow();
-          if (activePane === 'secondary') await refreshSecondaryPane();
-          else await refreshCurrentDirectory();
+          await refreshPane(activePane);
         } catch (deleteError) {
           showError(deleteError);
         }
@@ -1528,7 +1685,7 @@ const defaultColorLabels = [
     if (!paths.length || !appState.clipboardAction) return;
 
     try {
-      const activePane = appState.activePane as PaneId;
+      const activePane = activePaneId();
       const action: TransferAction = appState.clipboardAction === 'copy' ? 'copy' : 'move';
       const pasted = await transferEntriesWithSafety(paths, pathForPane(activePane), action);
       if (appState.clipboardAction === 'cut') {
@@ -1536,22 +1693,17 @@ const defaultColorLabels = [
         appState.clipboardAction = null;
       }
       const pastedPaths = pasted.map((item) => item.destination);
-      if (activePane === 'secondary') {
-        selectSecondaryPaths(
-          pastedPaths.filter((path) => appState.secondaryEntries.some((entry: FileEntry) => entry.path === path)),
-        );
-      } else {
-        selectPaths(
-          pastedPaths.filter((path) => appState.entries.some((entry: FileEntry) => entry.path === path)),
-        );
-      }
+      selectPanePaths(
+        activePane,
+        pastedPaths.filter((path) => entriesForPane(activePane).some((entry: FileEntry) => entry.path === path)),
+      );
     } catch (error) {
       showError(error);
     }
   }
 
-  export async function openEntryPath(path: PathString, isDirectory?: boolean, pane: PaneId = 'primary') {
-    const entry = pane === 'secondary' ? findSecondaryEntry(path) : findEntry(path);
+  export async function openEntryPath(path: PathString, isDirectory?: boolean, pane: PaneId = activePaneId()) {
+    const entry = findEntryInPane(pane, path);
     let shouldNavigate = isDirectory ?? entry?.is_dir;
 
     // When neither the caller nor the local entries list knows the type,
@@ -1567,8 +1719,7 @@ const defaultColorLabels = [
     }
 
     if (shouldNavigate) {
-      if (pane === 'secondary') await loadSecondaryDirectory(path);
-      else await loadDirectory(path);
+      await loadPaneDirectory(pane, path);
       return;
     }
 
@@ -1587,8 +1738,8 @@ const defaultColorLabels = [
   export async function openSelected() {
     if (selectedSetForPane().size !== 1) return;
     const path = currentSelectionPaths()[0];
-    const pane = appState.activePane as PaneId;
-    const entry = pane === 'secondary' ? findSecondaryEntry(path) : findEntry(path);
+    const pane = activePaneId();
+    const entry = findEntryInPane(pane, path);
     await openEntryPath(path, entry?.is_dir, pane);
   }
 
@@ -1617,7 +1768,7 @@ const defaultColorLabels = [
 
   export function selectedFileEntries() {
     const seen = new Set<PathString>();
-    const pane = appState.activePane as PaneId;
+    const pane = activePaneId();
     const selectedSet = selectedSetForPane(pane);
     return [
       ...selectedEntriesInView(pane),
@@ -1828,14 +1979,14 @@ const defaultColorLabels = [
   }
 
   export async function copyOrMoveToOtherPane(action: 'copy' | 'move') {
-    if (!appState.dualPaneEnabled || !appState.secondaryPath) {
+    if (!appState.dualPaneEnabled || !pathForPane(otherPaneId(activePaneId()))) {
       showError('Turn on Dual Pane and choose a destination pane first.');
       return;
     }
 
     const selectedEntries = selectedFileEntries();
     if (selectedEntries.length === 0) return;
-    const destination = appState.activePane === 'secondary' ? appState.currentPath : appState.secondaryPath;
+    const destination = pathForPane(otherPaneId(activePaneId()));
 
     try {
       await transferEntriesWithSafety(
@@ -1867,7 +2018,7 @@ const defaultColorLabels = [
     }
 
     try {
-      const activePane = appState.activePane as PaneId;
+      const activePane = activePaneId();
       const sourceParentPath = pathForPane(activePane);
       const folderPath = await getActiveFileSystem().createDirectory(sourceParentPath, folderName);
       const transferred = await transferEntriesWithSafety(
@@ -1897,8 +2048,7 @@ const defaultColorLabels = [
         },
       });
       showSuccess(`Packed ${selectedEntries.length} item${selectedEntries.length === 1 ? '' : 's'} into ${folderName}`);
-      if (activePane === 'secondary') await refreshSecondaryPane();
-      else await refreshCurrentDirectory();
+      await refreshPane(activePane);
     } catch (error) {
       showError(error);
     }
@@ -1918,7 +2068,7 @@ const defaultColorLabels = [
         return;
       }
 
-      const activePane = appState.activePane as PaneId;
+      const activePane = activePaneId();
       const destinationPath = pathForPane(activePane);
       const transferred = await transferEntriesWithSafety(
         listing.entries.map((child: FileEntry) => child.path),
@@ -1938,8 +2088,7 @@ const defaultColorLabels = [
         },
       });
       showSuccess(`Unpacked ${entry.name}`);
-      if (activePane === 'secondary') await refreshSecondaryPane();
-      else await refreshCurrentDirectory();
+      await refreshPane(activePane);
     } catch (error) {
       showError(error);
     }
@@ -1959,7 +2108,7 @@ const defaultColorLabels = [
     return ((payload?.paths || payload?.files || []) as PathString[]).filter(Boolean);
   }
 
-  export function setExternalDropOverlayVisible(visible: boolean, destination = appState.currentPath) {
+  export function setExternalDropOverlayVisible(visible: boolean, destination = pathForPane()) {
     const overlay = document.getElementById('external-drop-overlay');
     const pathElement = document.getElementById('external-drop-path');
     if (pathElement) pathElement.textContent = destination || '';
@@ -1972,8 +2121,8 @@ const defaultColorLabels = [
     const element = target instanceof HTMLElement ? target : null;
     const folderItem = element?.closest<HTMLElement>('.file-item[data-is-dir="true"]');
     if (folderItem?.dataset.path) return folderItem.dataset.path as PathString;
-    if (element?.closest('#secondary-file-list')) return appState.secondaryPath || appState.currentPath;
-    return appState.currentPath;
+    if (element?.closest('#secondary-file-list')) return pathForPane('secondary') || pathForPane('primary');
+    return pathForPane();
   }
 
   export function resetInternalDragState() {
@@ -2073,7 +2222,7 @@ const defaultColorLabels = [
   export function syncSettingsControls() {
     const settings = appState.settings || {};
     setInputValue('settings-theme', settings.theme || appState.theme || 'dark');
-    setInputValue('settings-default-view', settings.defaultView || (appState.isGridView ? 'grid' : 'list'));
+    setInputValue('settings-default-view', settings.defaultView || (sessionForPane().isGridView ? 'grid' : 'list'));
     setInputValue('settings-icon-size', settings.defaultIconSize || appState.iconSize || 64);
     setElementText('settings-icon-size-value', `${settings.defaultIconSize || appState.iconSize || 64}px`);
     setCheckbox('settings-show-hidden', Boolean(settings.showHidden));
@@ -2122,14 +2271,18 @@ const defaultColorLabels = [
       visibleColumns,
     };
     appState.theme = appState.settings.theme;
-    appState.isGridView = appState.settings.defaultView === 'grid';
     appState.iconSize = iconSize;
-    appState.showHiddenFiles = Boolean(appState.settings.showHidden);
+    const isGrid = appState.settings.defaultView === 'grid';
+    const showHidden = Boolean(appState.settings.showHidden);
+    for (const pane of PANE_IDS) {
+      const session = sessionForPane(pane);
+      session.isGridView = isGrid;
+      session.showHiddenFiles = showHidden;
+    }
     document.documentElement.style.setProperty('--icon-size', `${iconSize}px`);
     applyTheme();
     saveSettings();
-    applyEntryFilters();
-    if (appState.dualPaneEnabled) applySecondaryEntryFilters();
+    applyAllPaneFilters();
     syncSettingsControls();
   }
 

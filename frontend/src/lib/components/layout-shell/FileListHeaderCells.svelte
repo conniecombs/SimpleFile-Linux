@@ -29,6 +29,12 @@
   let displayColumns = $derived.by(() => (
     columns || columnDefinitions.filter((column) => column.id === 'name' || visibleColumns.includes(column.id))
   ));
+  let paneSession = $derived(appState.panes?.[pane] || appState.panes?.primary);
+
+  function sortState(column: FileListHeaderColumn): 'none' | 'ascending' | 'descending' {
+    if (paneSession?.sortBy !== column.sort) return 'none';
+    return paneSession?.sortAsc === false ? 'descending' : 'ascending';
+  }
 
   function getColumnClass(column: FileListHeaderColumn) {
     return column.className || `${column.id}-col`;
@@ -62,13 +68,13 @@
     data-sort={column.sort}
     data-pane={pane}
     role="columnheader"
-    aria-sort="none"
+    aria-sort={sortState(column)}
     tabindex="0"
     onclick={(event) => emitSort(event, column)}
     onkeydown={(event) => handleKeydown(event, column)}
   >
     <span>{column.label}</span>
-    <span class="sort-indicator" aria-hidden="true"></span>
+    <span class="sort-indicator" aria-hidden="true">{sortState(column) === 'ascending' ? '▲' : sortState(column) === 'descending' ? '▼' : ''}</span>
     {#if nextColumn && column.resizable !== false}
       <button
         type="button"

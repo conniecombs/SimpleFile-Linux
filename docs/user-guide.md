@@ -17,7 +17,10 @@ list. The complete shortcut table is in [keyboard-shortcuts.md](keyboard-shortcu
 - **Status bar:** Selection count, size, and free space on the active volume.
 
 Tabs keep independent folders. Dual pane (`F6`) puts a second folder beside the
-first for copy and move work.
+first for copy and move work. Each pane is its own session: path, history, tabs,
+selection, sort, list/grid, hidden files, filter, and search. The sidebar, tree,
+toolbar path bar, and search box always act on the **active** pane. `Tab`
+switches panes. When dual pane is on, each pane also has its own path header.
 
 ## Opening locations
 

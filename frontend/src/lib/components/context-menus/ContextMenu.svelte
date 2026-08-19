@@ -15,15 +15,14 @@
 
   let entries = $derived.by<ContextMenuEntry[]>(() => {
     const activePane = appState.activePane === 'secondary' ? 'secondary' : 'primary';
-    const activeSelection = activePane === 'secondary'
-      ? (appState.secondarySelectedEntries || new Set())
-      : appState.selectedEntries;
+    const session = appState.panes?.[activePane] || appState.panes?.primary;
+    const activeSelection = session?.selectedEntries || new Set();
     const selectionCount = activeSelection.size;
     const hasClipboard = (appState.clipboard?.length || 0) > 0;
     const selectedPaths = new Set(activeSelection);
     const entriesInView = [
-      ...(activePane === 'secondary' ? (appState.secondaryEntries || []) : (appState.entries || [])),
-      ...(activePane === 'secondary' ? (appState.secondaryFilteredEntries || []) : (appState.filteredEntries || [])),
+      ...(session?.entries || []),
+      ...(session?.filteredEntries || []),
     ];
     const selectedEntries = entriesInView.filter((entry: any, index: number, source: any[]) =>
       selectedPaths.has(entry.path)
@@ -34,7 +33,8 @@
     const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
     const isArchive = selectionCount === 1 && selectedSingle && !selectedSingle.is_dir && archiveExtensions.has(selectedExtension);
     const archiveFolderName = archiveExtractFolderName(selectedSingle?.name || '');
-    const hasOtherPane = Boolean(appState.dualPaneEnabled && appState.secondaryPath);
+    const otherPane = activePane === 'secondary' ? 'primary' : 'secondary';
+    const hasOtherPane = Boolean(appState.dualPaneEnabled && appState.panes?.[otherPane]?.path);
     const canCompare = selectionCount === 2 && selectedEntries.every((entry: any) => !entry.is_dir);
     const canUnpack = selectionCount === 1 && Boolean(selectedSingle?.is_dir);
     const hasFolderSelection = selectedEntries.some((entry: any) => Boolean(entry.is_dir));

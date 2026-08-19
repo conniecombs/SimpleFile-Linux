@@ -1,6 +1,6 @@
 use notify::RecommendedWatcher;
 use parking_lot::Mutex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Arc,
@@ -8,7 +8,7 @@ use std::sync::{
 
 pub(crate) struct WatcherState {
     pub(crate) watcher: Option<RecommendedWatcher>,
-    pub(crate) watched_path: Option<String>,
+    pub(crate) watched_paths: HashSet<String>,
 }
 
 pub struct AppState {
@@ -40,7 +40,7 @@ impl Default for AppState {
         Self {
             watcher_state: Mutex::new(WatcherState {
                 watcher: None,
-                watched_path: None,
+                watched_paths: HashSet::new(),
             }),
             cancelled_operations: Mutex::new(HashMap::new()),
             folder_size_cancel: Arc::new(AtomicBool::new(false)),

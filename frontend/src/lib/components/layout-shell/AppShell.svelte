@@ -10,6 +10,8 @@
   // @ts-ignore
   import { state as appState } from '../../app/state.svelte.ts';
 
+  let activeSession = $derived(appState.panes?.[appState.activePane === 'secondary' ? 'secondary' : 'primary'] || appState.panes?.primary);
+
   const SIDEBAR_MIN_WIDTH = 150;
   const SIDEBAR_MAX_WIDTH = 600;
 
@@ -107,7 +109,7 @@
 <main class="main-content">
   <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Open folders">
     <div class="tabs-container" id="tabs-container">
-      <TabsBar tabs={appState.tabs} activeTabId={appState.activeTabId} />
+      <TabsBar tabs={activeSession?.tabs || []} activeTabId={activeSession?.activeTabId || null} />
     </div>
   </div>
 

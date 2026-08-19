@@ -1,6 +1,8 @@
 // SimpleFile - State Management Module
 // Centralized application state with reactive proxy store
 
+import { createPanePair, persistablePaneSessions, applyPersistedPaneSession, normalizePaneId, type PersistedPaneSessions } from '../paneSession';
+
 // Monotonic counter for generating unique IDs (avoids Date.now() collisions)
 let _idCounter = 0;
 export function uniqueId(prefix: string) {
@@ -12,47 +14,25 @@ export function uniqueId(prefix: string) {
 // ============================================================================
 
 const initialState = {
-    currentPath: '',
-    entries: [],
-    filteredEntries: [],
-    selectedEntries: new Set(),
-    lastSelectedIndex: -1,
-    focusedIndex: -1,
-    history: [],
-    historyIndex: -1,
     clipboard: null,
     clipboardAction: null,
     undoStack: [],
     redoStack: [],
-    sortBy: 'name',
-    sortAsc: true,
-    isGridView: false,
     homePath: '',
-    showHiddenFiles: false,
     activeOperations: new Map(),
-    // Type-ahead state
-    typeAheadBuffer: '',
-    typeAheadTimeout: null,
-    // Drag state
     draggedItems: [],
     isDragging: false,
-    // Tree view
     treeData: new Map(),
     treeExpanded: new Set(),
-    // Preview
     showPreviewPane: false,
     previewEntry: null,
     iconSize: 64,
     quickLookVisible: false,
     quickLookEntry: null,
     folderSizes: new Map(),
-    // Tabs
-    tabs: [],
-    activeTabId: null,
     bookmarks: [],
     recentLocations: [],
     drives: [],
-    // Theme
     theme: 'dark',
     settingsVisible: false,
     aboutVisible: false,
@@ -70,8 +50,7 @@ const initialState = {
         showRecentLocations: true,
         showFolderSizes: true,
         startLocation: 'home',
-        customPath: ''
-        ,
+        customPath: '',
         /**
          * List of optional columns to display in list view.  The name column is
          * always shown; the entries in this array control additional metadata
@@ -86,39 +65,15 @@ const initialState = {
             type: 100
         }
     },
-    // Dual Pane
     dualPaneEnabled: false,
     activePane: 'primary',
-    secondaryPath: '',
-    secondaryEntries: [],
-    secondaryFilteredEntries: [],
-    secondarySelectedEntries: new Set(),
-    secondaryHistory: [],
-    secondaryHistoryIndex: -1,
-    // Archive
-    currentArchive: null,
-    // Search
-    searchQuery: '',
-    searchResults: [],
-    isSearching: false,
-    searchMode: false,
-    currentSearchId: null,
-    searchCancelled: false,
-    searchOptions: null,
+    panes: createPanePair(),
+    paneSessionsRestored: false,
     smartFolders: [],
     cleanupInProgress: false,
-    // Saved entries for restoring after search
-    _savedEntries: null,
-    // Git
-    gitStatus: null,
-    // Tags
     tags: [],
     fileTags: {},
-    // Navigation guard (prevents watcher refresh loops during navigation)
     isNavigating: false,
-    // Quick filter bar (client-side, current directory only)
-    filterQuery: '',
-    // Clipboard history: last N copy/cut operations
     clipboardHistory: [],
 };
 
@@ -131,7 +86,8 @@ function createReactiveState(initial: any) {
         activeOperations: new Map(),
         treeData: new Map(),
         treeExpanded: new Set(),
-        folderSizes: new Map()
+        folderSizes: new Map(),
+        panes: createPanePair(),
     });
 
     return new Proxy(reactiveState, {
@@ -167,6 +123,10 @@ export function subscribe(listener: any) {
 
 export function resetState() {
     (Object.keys(initialState) as Array<keyof typeof initialState>).forEach(key => {
+        if (key === 'panes') {
+            (state as any).panes = createPanePair();
+            return;
+        }
         if (typeof initialState[key] === 'object' && initialState[key] !== null) {
             if (initialState[key] instanceof Map) {
                 (state as any)[key] = new Map();
@@ -211,26 +171,43 @@ export function loadSettings() {
     }
 }
 
+const PANE_SESSIONS_KEY = 'simplefile-pane-sessions';
+const LEGACY_TABS_KEY = 'simplefile-tabs';
+const LEGACY_ACTIVE_TAB_KEY = 'simplefile-active-tab';
+
 export function saveTabs() {
     try {
-        localStorage.setItem('simplefile-tabs', JSON.stringify(state.tabs));
-        localStorage.setItem('simplefile-active-tab', state.activeTabId);
+        const payload = persistablePaneSessions(state);
+        localStorage.setItem(PANE_SESSIONS_KEY, JSON.stringify(payload));
     } catch (e) {
-        console.warn('Could not save tabs:', e);
+        console.warn('Could not save pane sessions:', e);
     }
 }
 
 export function loadTabs() {
     try {
-        const saved = localStorage.getItem('simplefile-tabs');
-        const activeId = localStorage.getItem('simplefile-active-tab');
+        const savedSessions = localStorage.getItem(PANE_SESSIONS_KEY);
+        if (savedSessions) {
+            const parsed = JSON.parse(savedSessions) as PersistedPaneSessions;
+            applyPersistedPaneSession(state.panes.primary, parsed?.primary);
+            applyPersistedPaneSession(state.panes.secondary, parsed?.secondary);
+            state.activePane = normalizePaneId(parsed?.activePane);
+            state.dualPaneEnabled = Boolean(parsed?.dualPaneEnabled);
+            state.paneSessionsRestored = Boolean(parsed?.primary?.path || parsed?.primary?.tabs?.length);
+            return state.paneSessionsRestored;
+        }
+
+        const saved = localStorage.getItem(LEGACY_TABS_KEY);
+        const activeId = localStorage.getItem(LEGACY_ACTIVE_TAB_KEY);
         if (saved) {
-            state.tabs = JSON.parse(saved);
-            state.activeTabId = activeId;
-            return true;
+            const tabs = JSON.parse(saved);
+            state.panes.primary.tabs = Array.isArray(tabs) ? tabs : [];
+            state.panes.primary.activeTabId = activeId;
+            state.paneSessionsRestored = state.panes.primary.tabs.length > 0;
+            return state.paneSessionsRestored;
         }
     } catch (e) {
-        console.warn('Could not load tabs:', e);
+        console.warn('Could not load pane sessions:', e);
     }
     return false;
 }

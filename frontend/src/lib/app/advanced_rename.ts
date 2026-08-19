@@ -17,10 +17,15 @@ import type { FileEntry, PathString, RenameRequest } from '../types';
 // @ts-ignore
 import { state as appState } from './state.svelte.ts';
 import {
+  activePaneId,
+  entriesForPane,
+  filteredEntriesForPane,
+  pathForPane,
   pushUndoEntry,
-  refreshCurrentDirectory,
-  refreshSecondaryPane,
+  refreshPane,
   runWithProgress,
+  selectedSetForPane,
+  sessionForPane,
   undoLastFlow,
 } from './core.js';
 
@@ -31,26 +36,22 @@ export type CollectedRenameTarget = {
 };
 
 function selectedSet(): Set<PathString> {
-  return (appState.activePane === 'secondary'
-    ? appState.secondarySelectedEntries
-    : appState.selectedEntries) as Set<PathString>;
+  return selectedSetForPane();
 }
 
 function entriesForActivePane(): FileEntry[] {
-  return (appState.activePane === 'secondary'
-    ? appState.secondaryFilteredEntries
-    : appState.filteredEntries) as FileEntry[];
+  return filteredEntriesForPane();
 }
 
 function fallbackParent(): PathString {
-  return (appState.activePane === 'secondary' ? appState.secondaryPath : appState.currentPath) || '';
+  return pathForPane() || '';
 }
 
 export function selectedRenameEntries(): FileEntry[] {
   const selected = selectedSet();
   const seen = new Set<PathString>();
   const fromView = entriesForActivePane().filter((entry) => selected.has(entry.path));
-  const extras = ((appState.activePane === 'secondary' ? appState.secondaryEntries : appState.entries) as FileEntry[])
+  const extras = entriesForPane()
     .filter((entry) => selected.has(entry.path) && !fromView.some((item) => item.path === entry.path));
 
   return [...fromView, ...extras].filter((entry) => {
@@ -71,8 +72,9 @@ export async function collectAdvancedRenameTargets(
   const includeRecursive = settings.includeRecursive;
   const includeHidden = settings.includeHidden;
   const renameFolders = settings.renameFolders;
-  const sortBy = appState.sortBy || 'name';
-  const sortAsc = appState.sortAsc !== false;
+  const session = sessionForPane();
+  const sortBy = session.sortBy || 'name';
+  const sortAsc = session.sortAsc !== false;
   const targets: CollectedRenameTarget[] = [];
   const seen = new Set<PathString>();
 
@@ -244,8 +246,7 @@ export async function applyAdvancedRenamePlans(plans: AdvancedRenamePlan[]): Pro
     },
   );
 
-  if (appState.activePane === 'secondary') await refreshSecondaryPane();
-  else await refreshCurrentDirectory();
+  await refreshPane(activePaneId());
 
   return changed.length;
 }

@@ -3,6 +3,7 @@
   import { state as appState } from '../../app/state.svelte.ts';
   import BreadcrumbTrail from '../breadcrumb/BreadcrumbTrail.svelte';
   import type { BreadcrumbSegment } from '../breadcrumb/BreadcrumbTrail.svelte';
+  import { breadcrumbSegments } from '../../paneSession';
 
   type ToolbarCommand =
     | 'back'
@@ -31,13 +32,11 @@
 
   let moreActionsWrapper: HTMLDivElement | undefined = $state();
   let searchInputElement: HTMLInputElement | undefined = $state();
+  let pathInputElement: HTMLInputElement | undefined = $state();
   let isMoreActionsOpen = $state(false);
-  let activeSelection = $derived(appState.activePane === 'secondary'
-    ? (appState.secondarySelectedEntries || new Set())
-    : appState.selectedEntries);
-  let activeEntries = $derived(appState.activePane === 'secondary'
-    ? (appState.secondaryFilteredEntries || [])
-    : (appState.filteredEntries || []));
+  let activeSession = $derived(appState.panes?.[appState.activePane === 'secondary' ? 'secondary' : 'primary'] || appState.panes?.primary);
+  let activeSelection = $derived(activeSession?.selectedEntries || new Set());
+  let activeEntries = $derived(activeSession?.filteredEntries || []);
   let hasSelection = $derived(activeSelection.size > 0);
   let hasClipboard = $derived((appState.clipboard?.length || 0) > 0);
   let hasRedo = $derived((appState.redoStack || []).some((entry: any) => typeof entry?.redo === 'function'));
@@ -47,19 +46,22 @@
     return activeEntries.some((entry: any) => selectedPaths.has(entry.path) && entry.is_dir);
   });
 
-  let pathSegments = $derived.by(() => {
-    if (!appState.currentPath) return [];
-    const parts = appState.currentPath.split(/[/\\]/).filter(Boolean);
-    let currentAccumulated = '';
-    return parts.map((part: string, index: number) => {
-      const isDrive = index === 0 && part.endsWith(':');
-      currentAccumulated += index === 0 ? (isDrive ? part + '\\' : part) : '\\' + part;
-      return {
-        label: part,
-        path: currentAccumulated,
-        current: index === parts.length - 1
-      } as BreadcrumbSegment;
-    });
+  let pathSegments = $derived(breadcrumbSegments(activeSession?.path || '') as BreadcrumbSegment[]);
+  let canGoBack = $derived((activeSession?.historyIndex || 0) > 0);
+  let canGoForward = $derived((activeSession?.historyIndex || -1) < (activeSession?.history?.length || 0) - 1);
+
+  $effect(() => {
+    const path = activeSession?.path || '';
+    if (pathInputElement && document.activeElement !== pathInputElement) {
+      pathInputElement.value = path;
+    }
+  });
+
+  $effect(() => {
+    const query = activeSession?.search?.query || '';
+    if (searchInputElement && document.activeElement !== searchInputElement) {
+      searchInputElement.value = query;
+    }
   });
 
   const SEARCH_CANCEL_EVENT = 'simplefile:search-cancel';
@@ -155,10 +157,10 @@
 
 <header class="toolbar" role="toolbar" aria-label="Navigation and actions">
   <div class="toolbar-nav" role="group" aria-label="Navigation">
-    <button class="toolbar-btn" id="btn-back" title="Go Back" aria-label="Go back" disabled={appState.historyIndex <= 0} onclick={(event) => emitToolbarCommand(event, 'back')}>
+    <button class="toolbar-btn" id="btn-back" title="Go Back" aria-label="Go back" disabled={!canGoBack} onclick={(event) => emitToolbarCommand(event, 'back')}>
       <span class="icon" aria-hidden="true">◀</span>
     </button>
-    <button class="toolbar-btn" id="btn-forward" title="Go Forward" aria-label="Go forward" disabled={appState.historyIndex >= appState.history.length - 1} onclick={(event) => emitToolbarCommand(event, 'forward')}>
+    <button class="toolbar-btn" id="btn-forward" title="Go Forward" aria-label="Go forward" disabled={!canGoForward} onclick={(event) => emitToolbarCommand(event, 'forward')}>
       <span class="icon" aria-hidden="true">▶</span>
     </button>
     <button class="toolbar-btn" id="btn-up" title="Go Up" aria-label="Go to parent folder" onclick={(event) => emitToolbarCommand(event, 'up')}>
@@ -171,7 +173,7 @@
 
   <div class="path-bar" id="path-bar" role="navigation" aria-label="Breadcrumb navigation">
     <BreadcrumbTrail segments={pathSegments} />
-    <input type="text" id="path-input" class="path-input" placeholder="Enter path..." autocomplete="off" />
+    <input bind:this={pathInputElement} type="text" id="path-input" class="path-input" placeholder="Enter path..." autocomplete="off" value={activeSession?.path || ''} />
     <div class="path-autocomplete" id="path-autocomplete" role="listbox" aria-label="Path suggestions" style="display:none;"></div>
   </div>
 
@@ -188,15 +190,15 @@
         <circle cx="8" cy="17" r="2" />
       </svg>
     </button>
-    <button class="search-clear-btn" id="search-cancel" title="Cancel Search" aria-label="Cancel search" style="display: none;" onclick={(event) => emitFromTarget(SEARCH_CANCEL_EVENT, event)}>■</button>
-    <button class="search-clear-btn" id="search-clear" title="Clear Search" aria-label="Clear search results" style="display: none;" onclick={(event) => emitFromTarget(SEARCH_CLEAR_EVENT, event)}>✕</button>
+    <button class="search-clear-btn" id="search-cancel" title="Cancel Search" aria-label="Cancel search" style:display={activeSession?.search?.isSearching ? 'inline-flex' : 'none'} onclick={(event) => emitFromTarget(SEARCH_CANCEL_EVENT, event)}>■</button>
+    <button class="search-clear-btn" id="search-clear" title="Clear Search" aria-label="Clear search results" style:display={activeSession?.search?.searchMode ? 'inline-flex' : 'none'} onclick={(event) => emitFromTarget(SEARCH_CLEAR_EVENT, event)}>✕</button>
   </div>
 
   <div class="toolbar-actions" role="group" aria-label="Actions">
     <button class="toolbar-btn" id="btn-new-folder" title="New Folder (Ctrl+N)" aria-label="Create new folder" onclick={(event) => emitToolbarCommand(event, 'new-folder')}>
       <span class="icon" aria-hidden="true">📁+</span>
     </button>
-    <button class="toolbar-btn" id="btn-view-toggle" title="Toggle View (List/Grid)" aria-label="Toggle between list and grid view" aria-pressed={appState.isGridView} onclick={(event) => emitToolbarCommand(event, 'view-toggle')}>
+    <button class="toolbar-btn" id="btn-view-toggle" title="Toggle View (List/Grid)" aria-label="Toggle between list and grid view" aria-pressed={Boolean(activeSession?.isGridView)} onclick={(event) => emitToolbarCommand(event, 'view-toggle')}>
       <span class="icon" aria-hidden="true">⊞</span>
     </button>
     <div class="more-actions-wrapper" bind:this={moreActionsWrapper}>

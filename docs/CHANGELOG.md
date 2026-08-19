@@ -11,6 +11,12 @@ builds that remain in git history.
 
 ## [Unreleased]
 
+### Added
+- Independent dual-pane sessions. Each pane keeps its own path, history, tabs,
+  selection, sort, list/grid view, hidden-file setting, quick filter, and
+  search. Shared chrome (sidebar, tree, toolbar, tab bar, `Ctrl+L`) always
+  navigates the active pane. Directory watching covers both open folders.
+
 ### Removed
 - Deleted leftover generated and unused files that do not belong in a Linux
   source tree: the GitHub device-flow stubs, the Windows PowerShell-as-admin

@@ -33,9 +33,14 @@
     };
   }
 
+  let session = $derived(appState.panes?.[pane] || appState.panes?.primary);
+  let filteredEntries = $derived(session?.filteredEntries || []);
+  let selectedSet = $derived(session?.selectedEntries || new Set());
+  let focusedIndex = $derived(session?.focusedIndex ?? -1);
+  let isGridView = $derived(Boolean(session?.isGridView));
+
   let displayItems = $derived.by(() => {
-    const sourceEntries = pane === 'primary' ? appState.filteredEntries : (appState.secondaryFilteredEntries || []);
-    const selectedSet = pane === 'primary' ? appState.selectedEntries : (appState.secondarySelectedEntries || new Set());
+    const sourceEntries = filteredEntries;
 
     return sourceEntries.map((entry: any, i: number): FileListViewItem => {
       const folderSize = appState.folderSizes?.get(entry.path);
@@ -49,7 +54,7 @@
         isCut: false,
         isDir: entry.is_dir,
         isDragging: Boolean((appState.draggedItems || []).includes(entry.path)),
-        isFocused: i === appState.focusedIndex && appState.activePane === pane,
+        isFocused: i === focusedIndex && appState.activePane === pane,
         isImage: entry.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) !== null,
         isPdf: entry.name.toLowerCase().endsWith('.pdf'),
         isSelected: selectedSet.has(entry.path),
@@ -74,11 +79,11 @@
   const GRID_ITEM_WIDTH = 112;
 
   let itemsPerRow = $derived.by(() => {
-    if (!appState.isGridView) return 1;
+    if (!isGridView) return 1;
     return Math.max(1, Math.floor(clientWidth / (GRID_ITEM_WIDTH + 16)));
   });
 
-  let itemHeight = $derived(appState.isGridView ? GRID_ITEM_HEIGHT : LIST_ITEM_HEIGHT);
+  let itemHeight = $derived(isGridView ? GRID_ITEM_HEIGHT : LIST_ITEM_HEIGHT);
 
   let virtualMath = $derived.by(() => {
     const totalItems = displayItems.length;
@@ -106,8 +111,8 @@
   bind:clientHeight
   bind:clientWidth
   class="file-list"
-  class:list-view={!appState.isGridView}
-  class:grid-view={appState.isGridView}
+  class:list-view={!isGridView}
+  class:grid-view={isGridView}
   class:drag-active={appState.isDragging}
   id={pane === 'primary' ? 'file-list' : 'secondary-file-list'}
   role="listbox"
@@ -117,7 +122,7 @@
 >
   <FileListItems
     items={virtualMath.visibleItems}
-    isGrid={appState.isGridView}
+    isGrid={isGridView}
     {pane}
     visibleColumns={visibleColumns}
     mode="virtual"

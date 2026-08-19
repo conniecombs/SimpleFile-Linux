@@ -3,8 +3,7 @@ import { state as appState } from './app/state.svelte.ts';
 import {
   filteredEntriesForPane,
   selectedSetForPane,
-  selectPaths,
-  selectSecondaryPaths,
+  selectPanePaths,
 } from './app/core';
 import type { PaneId } from './fileNavigation';
 import {
@@ -134,8 +133,7 @@ function applyMarqueeSelection(clientX: number, clientY: number): void {
   for (const path of hit.paths) next.add(path);
 
   const focusedIndex = hit.indices.length > 0 ? hit.indices[hit.indices.length - 1] : -1;
-  if (session.pane === 'secondary') selectSecondaryPaths([...next], focusedIndex);
-  else selectPaths([...next], focusedIndex);
+  selectPanePaths(session.pane, [...next], focusedIndex);
 
   const visual = visualRectForContent(contentRect);
   if (rectArea(visual) >= 1) paintRect(visual);
@@ -197,8 +195,7 @@ function endSession(clearEmptyClick = false): void {
 
   if (!didSelect && clearEmptyClick && ended) {
     if (ended.additive) return;
-    if (ended.pane === 'secondary') selectSecondaryPaths([], -1);
-    else selectPaths([], -1);
+    selectPanePaths(ended.pane, [], -1);
   }
 }
 

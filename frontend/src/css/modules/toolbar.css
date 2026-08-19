@@ -259,6 +259,10 @@
     border-bottom: 1px solid var(--accent-primary);
 }
 
+.quick-filter-bar[hidden] {
+    display: none !important;
+}
+
 .quick-filter-icon {
     font-size: 13px;
     flex-shrink: 0;

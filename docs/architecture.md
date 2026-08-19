@@ -36,10 +36,15 @@ SimpleFile-Linux/
 `legacy-shell-template.html` still hosts older modal markup that action code
 addresses by element id (archives, keyboard help, About, progress).
 
-State lives in `frontend/src/lib/app/state.svelte.ts`. File-list, tab, search,
-and transfer workflows sit beside it under `frontend/src/lib/`. New UI belongs
-in `frontend/src/lib/components/`. New Tauri calls belong in `api.ts` with a
-matching contract in `types.ts`.
+State lives in `frontend/src/lib/app/state.svelte.ts`. Browse state is a
+`PaneSession` per pane (`frontend/src/lib/paneSession.ts`): path, listing,
+selection, history, tabs, sort, view, hidden files, filter, and search. Dual
+pane is two sessions. Shared chrome (sidebar, tree, toolbar, tab bar) reads and
+writes the active session. Clipboard, undo, settings, and theme stay global.
+
+File-list, tab, search, and transfer workflows sit beside it under
+`frontend/src/lib/`. New UI belongs in `frontend/src/lib/components/`. New
+Tauri calls belong in `api.ts` with a matching contract in `types.ts`.
 
 Advanced Rename is the reference for this split: a pure engine, a storage
 helper, a Svelte dialog, and a thin workflow that calls `batch_rename`.

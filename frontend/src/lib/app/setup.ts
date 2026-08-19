@@ -101,10 +101,11 @@ import { invokeCommand } from '../tauri.js';
     TransferResult,
   } from '../types';
 import { localState } from './localState.svelte';
-import type { PaneId } from "../fileNavigation.js";
+import type { PaneId } from "../paneSession.js";
+import { normalizePaneId } from "../paneSession.js";
 
 import { showCreateArchiveFlow, closeArchiveFlow, extractArchiveFlow } from "./archive.js";
-import { applyPersistedViewSettings, updateStatusBar, loadTagsFlow, loadDirectory, openEntryPath, filteredEntriesForPane, selectedSetForPane, selectSecondaryPaths, selectPaths, updatePreviewPane, navigateHistory, refreshCurrentDirectory, createFolderFlow, createFileFlow, renameSelectedFlow, copySelection, pasteClipboard, deleteSelectedFlow, undoLastFlow, redoLastFlow, showClipboardHistoryFlow, showSetColorLabelFlow, showFolderMetricsFlow, showDiskCleanupFlow, closePreviewPaneFlow, applyTheme, loadSecondaryDirectory, pathForPane, navigateSpecial, navigateSecondaryHistory, loadTreeChildren, applyEntryFilters, applySecondaryEntryFilters, openNewTab, switchToTab, closeTab, moveTabFocus, showQuickLookFlow, showKeyboardHelpFlow, showContextMenuAt, handleContextMenuCommand, hideContextMenu, closeSettingsModal, syncSettingsControls, updateToolStatus, saveSettingsFromControls, installToolFlow, checkForUpdatesFlow, installUpdateFlow, showAboutFlow, overlayById, closeQuickLookFlow, closeKeyboardHelpFlow, hideProgressFlow, selectAllEntries, refreshSecondaryPane, openSelected, updateProgressFlow, scheduleFileChangeRefresh, setDefaultFileManagerFlow } from "./core.js";
+import { applyPersistedViewSettings, updateStatusBar, loadTagsFlow, loadDirectory, loadPaneDirectory, openEntryPath, filteredEntriesForPane, selectedSetForPane, selectPanePaths, updatePreviewPane, navigateHistory, refreshCurrentDirectory, createFolderFlow, createFileFlow, renameSelectedFlow, copySelection, pasteClipboard, deleteSelectedFlow, undoLastFlow, redoLastFlow, showClipboardHistoryFlow, showSetColorLabelFlow, showFolderMetricsFlow, showDiskCleanupFlow, closePreviewPaneFlow, applyTheme, loadSecondaryDirectory, pathForPane, navigateSpecial, navigateSecondaryHistory, loadTreeChildren, applyPaneFilters, openNewTab, switchToTab, closeTab, moveTabFocus, showQuickLookFlow, showKeyboardHelpFlow, showContextMenuAt, handleContextMenuCommand, hideContextMenu, closeSettingsModal, syncSettingsControls, updateToolStatus, saveSettingsFromControls, installToolFlow, checkForUpdatesFlow, installUpdateFlow, showAboutFlow, overlayById, closeQuickLookFlow, closeKeyboardHelpFlow, hideProgressFlow, selectAllEntries, refreshPane, openSelected, updateProgressFlow, scheduleFileChangeRefresh, setDefaultFileManagerFlow, activatePane, activePaneId, sessionForPane, toggleDualPane, movePaneFocus, focusPaneEdge, handlePaneTypeAhead, setPaneFilterQuery, openPaneFilter, closePaneFilter, togglePaneHiddenFiles, togglePaneView, sortPane } from "./core.js";
 import { installDragAndDrop } from "../dragAndDrop";
 import { installMarqueeSelection } from "../marqueeSelection";
 import { loadSmartFoldersFlow, runSearch, clearSearch, setSearchControlsVisible, openAdvancedSearchFlow, saveCurrentSearchAsSmartFolderFlow, openSmartFolderFlow, deleteSmartFolderFlow, showPropertiesFlow } from "./search.js";
@@ -141,28 +142,47 @@ export function initApp() {
       getStartupPath().then((startupPath) => {
         let finalStartPath = startupPath;
         if (!finalStartPath) {
+          const primary = sessionForPane('primary');
           const startup = resolveStartupLocation({
-            activeTabId: appState.activeTabId,
+            activeTabId: primary.activeTabId,
             homePath: home,
             settings: appState.settings,
-            tabs: appState.tabs,
+            tabs: primary.tabs,
             tabsLoaded,
           });
-          appState.tabs = startup.tabs;
-          appState.activeTabId = startup.activeTabId;
-          appState.history = startup.history;
-          appState.historyIndex = startup.historyIndex;
+          primary.tabs = (startup.tabs || []).map((tab) => ({
+            history: Array.isArray(tab.history) ? [...tab.history] : [tab.path || home],
+            historyIndex: Number.isInteger(tab.historyIndex) ? Number(tab.historyIndex) : 0,
+            id: tab.id,
+            path: tab.path || home,
+            title: String(tab.path || home).split('/').filter(Boolean).pop() || tab.path || home,
+          }));
+          primary.activeTabId = startup.activeTabId;
+          primary.history = startup.history || [];
+          primary.historyIndex = Number.isInteger(startup.historyIndex) ? Number(startup.historyIndex) : -1;
           finalStartPath = startup.startPath;
         } else {
-          // If a path was passed via CLI, we can open it in a new tab or replace current
-          // For simplicity, let's just replace current if it's the first window load
-          appState.tabs = [{ id: '1', path: finalStartPath, label: 'CLI', paneFocus: 'primary' }];
-          appState.activeTabId = '1';
-          appState.history = [finalStartPath];
-          appState.historyIndex = 0;
+          const primary = sessionForPane('primary');
+          primary.tabs = [{
+            id: '1',
+            path: finalStartPath,
+            title: finalStartPath.split('/').filter(Boolean).pop() || finalStartPath,
+            history: [finalStartPath],
+            historyIndex: 0,
+          }];
+          primary.activeTabId = '1';
+          primary.history = [finalStartPath];
+          primary.historyIndex = 0;
         }
 
-        return loadDirectory(finalStartPath || appState.homePath || '/', appState.history.length > 0 ? 'replace-current' : 'push');
+        const primary = sessionForPane('primary');
+        const startPath = finalStartPath || appState.homePath || '/';
+        const historyMode = primary.history.length > 0 ? 'replace-current' : 'push';
+        const pending = [loadPaneDirectory('primary', startPath, historyMode, { activate: true })];
+        if (appState.dualPaneEnabled && sessionForPane('secondary').path) {
+          pending.push(loadPaneDirectory('secondary', sessionForPane('secondary').path, 'none', { activate: false }));
+        }
+        return Promise.all(pending);
       }).then(() => {
         showMainWindow();
       }).catch(console.error);
@@ -196,13 +216,13 @@ export function initApp() {
         return;
       }
 
-      const fallbackDrive = createFallbackDriveForPath(appState.homePath || appState.currentPath);
+      const fallbackDrive = createFallbackDriveForPath(appState.homePath || pathForPane('primary'));
       if (fallbackDrive) {
         appState.drives = [fallbackDrive];
       }
     }).catch((error) => {
       console.error('Failed to load drives:', error);
-      const fallbackDrive = createFallbackDriveForPath(appState.homePath || appState.currentPath);
+      const fallbackDrive = createFallbackDriveForPath(appState.homePath || pathForPane('primary'));
       if (fallbackDrive) {
         appState.drives = [fallbackDrive];
       }
@@ -217,7 +237,7 @@ export function initApp() {
       const alwaysDir = e.type === 'simplefile:tree-node-open' || e.type === 'simplefile:breadcrumb-navigate';
       const isDir = e.detail?.isDir ?? alwaysDir;
 
-      void openEntryPath(path, isDir, e.detail?.pane || 'primary');
+      void openEntryPath(path, isDir, normalizePaneId(e.detail?.pane, activePaneId()));
     };
 
     const handleItemSelection = (e: any) => {
@@ -226,13 +246,13 @@ export function initApp() {
       const activePane = pane === 'secondary' ? 'secondary' : 'primary';
       const paneEntries = filteredEntriesForPane(activePane);
       const paneSelection = selectedSetForPane(activePane);
+      const session = sessionForPane(activePane);
 
-      if (shiftKey && appState.lastSelectedIndex >= 0) {
-        const start = Math.min(appState.lastSelectedIndex, index);
-        const end = Math.max(appState.lastSelectedIndex, index);
+      if (shiftKey && session.lastSelectedIndex >= 0) {
+        const start = Math.min(session.lastSelectedIndex, index);
+        const end = Math.max(session.lastSelectedIndex, index);
         const selectedRange = paneEntries.slice(start, end + 1).map((entry: FileEntry) => entry.path);
-        if (activePane === 'secondary') selectSecondaryPaths(selectedRange, index);
-        else selectPaths(selectedRange, index);
+        selectPanePaths(activePane, selectedRange, index, { keepAnchor: true });
         return;
       }
 
@@ -240,30 +260,19 @@ export function initApp() {
         const nextSelection = new Set(paneSelection);
         if (nextSelection.has(path)) nextSelection.delete(path);
         else nextSelection.add(path);
-        if (activePane === 'secondary') {
-          appState.secondarySelectedEntries = nextSelection;
-          appState.activePane = 'secondary';
-        } else {
-          appState.selectedEntries = nextSelection;
-          appState.activePane = 'primary';
-        }
-        appState.focusedIndex = index;
-        appState.lastSelectedIndex = index;
-        updateStatusBar();
-        if (activePane === 'primary') void updatePreviewPane();
+        selectPanePaths(activePane, [...nextSelection], index);
         return;
       }
 
-      if (activePane === 'secondary') selectSecondaryPaths([path], index);
-      else selectPaths([path], index);
+      selectPanePaths(activePane, [path], index);
     };
 
     const handleToolbarCommand = (e: any) => {
       const command = e.detail.command;
-      if (command === 'back') void navigateHistory(-1);
-      else if (command === 'forward') void navigateHistory(1);
+      if (command === 'back') void navigateHistory(-1, activePaneId());
+      else if (command === 'forward') void navigateHistory(1, activePaneId());
       else if (command === 'up') {
-        const parent = getParentPath(appState.currentPath);
+        const parent = getParentPath(pathForPane());
         if (parent) void loadDirectory(parent);
       } else if (command === 'refresh') {
         void refreshCurrentDirectory();
@@ -296,8 +305,8 @@ export function initApp() {
       } else if (command === 'find-duplicates') {
         document.dispatchEvent(new CustomEvent('simplefile:find-duplicates'));
       } else if (command === 'view-toggle') {
-        appState.isGridView = !appState.isGridView;
-        appState.settings = { ...appState.settings, defaultView: appState.isGridView ? 'grid' : 'list' };
+        togglePaneView();
+        appState.settings = { ...appState.settings, defaultView: sessionForPane().isGridView ? 'grid' : 'list' };
         saveSettings();
       } else if (command === 'preview-toggle') {
         appState.showPreviewPane = !appState.showPreviewPane;
@@ -309,10 +318,7 @@ export function initApp() {
         applyTheme();
         saveSettings();
       } else if (command === 'dual-pane') {
-        appState.dualPaneEnabled = !appState.dualPaneEnabled;
-        if (appState.dualPaneEnabled && !appState.secondaryPath) {
-          void loadSecondaryDirectory(appState.currentPath, 'replace-current', false);
-        }
+        void toggleDualPane();
       } else if (command === 'terminal') {
         openTerminal(pathForPane()).catch(showError);
       } else if (command.startsWith?.('navigate')) {
@@ -320,18 +326,41 @@ export function initApp() {
       }
     };
 
-    const handleSecondaryPaneCommand = (e: any) => {
+    const handlePaneCommand = (e: any) => {
+      const pane = normalizePaneId(e.detail?.pane, 'secondary');
       const command = e.detail?.command;
+      activatePane(pane);
       if (command === 'back') {
-        void navigateSecondaryHistory(-1);
+        void navigateHistory(-1, pane);
       } else if (command === 'forward') {
-        void navigateSecondaryHistory(1);
+        void navigateHistory(1, pane);
       } else if (command === 'up') {
-        const parent = getParentPath(appState.secondaryPath);
-        if (parent) void loadSecondaryDirectory(parent);
+        const parent = getParentPath(pathForPane(pane));
+        if (parent) void loadPaneDirectory(pane, parent);
       } else if (command === 'navigate' && e.detail?.path) {
-        void loadSecondaryDirectory(e.detail.path);
+        void loadPaneDirectory(pane, e.detail.path);
       }
+    };
+
+    const handleSecondaryPaneCommand = (e: any) => {
+      handlePaneCommand({
+        ...e,
+        detail: { ...(e.detail || {}), pane: 'secondary' },
+      });
+    };
+
+    const handlePaneActivate = (e: any) => {
+      activatePane(normalizePaneId(e.detail?.pane, activePaneId()));
+    };
+
+    const handleQuickFilterInput = (e: any) => {
+      const pane = normalizePaneId(e.detail?.pane, activePaneId());
+      setPaneFilterQuery(pane, String(e.detail?.query || ''));
+    };
+
+    const handleQuickFilterClear = (e: any) => {
+      const pane = normalizePaneId(e.detail?.pane, activePaneId());
+      closePaneFilter(pane);
     };
 
     const handleTreeToggle = async (e: any) => {
@@ -357,14 +386,7 @@ export function initApp() {
     const handleSort = (e: any) => {
       const sortBy = e.detail?.sort;
       if (!sortBy) return;
-      if (appState.sortBy === sortBy) {
-        appState.sortAsc = !appState.sortAsc;
-      } else {
-        appState.sortBy = sortBy;
-        appState.sortAsc = true;
-      }
-      applyEntryFilters();
-      if (appState.dualPaneEnabled) applySecondaryEntryFilters();
+      sortPane(normalizePaneId(e.detail?.pane, activePaneId()), sortBy);
     };
 
     const handleIconSize = (e: any) => {
@@ -390,12 +412,13 @@ export function initApp() {
     };
 
     const handleSearchCancel = () => {
-      if (appState.currentSearchId) {
-        cancelSearch(appState.currentSearchId).catch(showError);
+      const session = sessionForPane();
+      if (session.search.currentSearchId) {
+        cancelSearch(session.search.currentSearchId).catch(showError);
       }
-      appState.currentSearchId = null;
-      appState.isSearching = false;
-      setSearchControlsVisible({ clear: appState.searchMode, cancel: false });
+      session.search.currentSearchId = null;
+      session.search.isSearching = false;
+      setSearchControlsVisible({ clear: session.search.searchMode, cancel: false });
     };
 
     const handleSearchAdvanced = () => {
@@ -491,8 +514,7 @@ export function initApp() {
       if (item?.dataset.path) {
         const index = Number(item.dataset.index ?? -1);
         if (!selectedSet.has(item.dataset.path)) {
-          if (pane === 'secondary') selectSecondaryPaths([item.dataset.path], Number.isFinite(index) ? index : -1);
-          else selectPaths([item.dataset.path], Number.isFinite(index) ? index : -1);
+          selectPanePaths(pane, [item.dataset.path], Number.isFinite(index) ? index : -1);
         }
       } else {
         appState.activePane = pane;
@@ -600,7 +622,7 @@ export function initApp() {
         case 'settings-custom-path-browse':
           void (async () => {
             try {
-              const fallbackPath = appState.currentPath || appState.homePath || null;
+              const fallbackPath = pathForPane() || appState.homePath || null;
               const selectedPath = await selectDirectory(fallbackPath);
               if (!selectedPath) return;
               const customPathInput = document.getElementById('settings-custom-path') as HTMLInputElement | null;
@@ -734,6 +756,13 @@ export function initApp() {
         return;
       }
 
+      if (target?.id === 'secondary-path-input' && event.key === 'Enter') {
+        event.preventDefault();
+        const value = (target as HTMLInputElement).value.trim();
+        if (value) void loadPaneDirectory('secondary', value);
+        return;
+      }
+
       if (event.key === 'Escape') {
         if (overlayById('quicklook-overlay')?.classList.contains('visible')) {
           event.preventDefault();
@@ -789,7 +818,56 @@ export function initApp() {
         return;
       }
 
+      if (event.ctrlKey && key === 'l') {
+        event.preventDefault();
+        const pathInput = document.getElementById('path-input') as HTMLInputElement | null;
+        pathInput?.focus();
+        pathInput?.select();
+        return;
+      }
+
+      if (event.key === 'F6') {
+        event.preventDefault();
+        void toggleDualPane();
+        return;
+      }
+
       if (isTextInput || document.getElementById('modal-overlay')?.classList.contains('visible')) {
+        return;
+      }
+
+      if (event.key === 'Tab' && appState.dualPaneEnabled) {
+        event.preventDefault();
+        activatePane(activePaneId() === 'primary' ? 'secondary' : 'primary');
+        return;
+      }
+
+      if (event.ctrlKey && key === 't') {
+        event.preventDefault();
+        void openNewTab();
+        return;
+      }
+
+      if (event.ctrlKey && key === 'w') {
+        event.preventDefault();
+        const session = sessionForPane();
+        if (session.activeTabId) void closeTab(session.activeTabId);
+        return;
+      }
+
+      if (event.ctrlKey && key === 'h') {
+        event.preventDefault();
+        togglePaneHiddenFiles();
+        return;
+      }
+
+      if (event.ctrlKey && event.shiftKey && key === 'f') {
+        event.preventDefault();
+        const pane = activePaneId();
+        openPaneFilter(pane);
+        requestAnimationFrame(() => {
+          document.getElementById(pane === 'secondary' ? 'secondary-filter-input' : 'filter-input')?.focus();
+        });
         return;
       }
 
@@ -831,22 +909,38 @@ export function initApp() {
         void deleteSelectedFlow();
       } else if (event.key === 'F5') {
         event.preventDefault();
-        if (appState.activePane === 'secondary') void refreshSecondaryPane();
-        else void refreshCurrentDirectory();
+        void refreshPane(activePaneId());
       } else if (event.key === 'Backspace') {
         event.preventDefault();
-        const activePane = appState.activePane as PaneId;
-        const parent = getParentPath(pathForPane(activePane));
-        if (parent) {
-          if (activePane === 'secondary') void loadSecondaryDirectory(parent);
-          else void loadDirectory(parent);
-        }
+        const parent = getParentPath(pathForPane());
+        if (parent) void loadDirectory(parent);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        movePaneFocus(1, event.shiftKey);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        movePaneFocus(-1, event.shiftKey);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        focusPaneEdge('first');
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        focusPaneEdge('last');
+      } else if (event.key === '/' && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        const pane = activePaneId();
+        openPaneFilter(pane);
+        requestAnimationFrame(() => {
+          document.getElementById(pane === 'secondary' ? 'secondary-filter-input' : 'filter-input')?.focus();
+        });
       } else if ((event.key === ' ' || event.code === 'Space') && !(target instanceof HTMLButtonElement) && !(target instanceof HTMLAnchorElement)) {
         event.preventDefault();
         void showQuickLookFlow();
       } else if (event.key === 'Enter') {
         event.preventDefault();
         void openSelected();
+      } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        handlePaneTypeAhead(event.key);
       }
     };
 
@@ -882,6 +976,10 @@ export function initApp() {
     document.addEventListener('simplefile:file-list-sort', handleSort);
     document.addEventListener('simplefile:toolbar-command', handleToolbarCommand);
     document.addEventListener('simplefile:secondary-pane-command', handleSecondaryPaneCommand);
+    document.addEventListener('simplefile:pane-command', handlePaneCommand);
+    document.addEventListener('simplefile:pane-activate', handlePaneActivate);
+    document.addEventListener('simplefile:quick-filter-input', handleQuickFilterInput);
+    document.addEventListener('simplefile:quick-filter-clear', handleQuickFilterClear);
     document.addEventListener('simplefile:toolbar-icon-size', handleIconSize);
     document.addEventListener('simplefile:toast', handleToast);
     document.addEventListener('simplefile:open-settings', handleSettingsOpen);
@@ -936,6 +1034,10 @@ export function initApp() {
       document.removeEventListener('simplefile:file-list-sort', handleSort);
       document.removeEventListener('simplefile:toolbar-command', handleToolbarCommand);
       document.removeEventListener('simplefile:secondary-pane-command', handleSecondaryPaneCommand);
+      document.removeEventListener('simplefile:pane-command', handlePaneCommand);
+      document.removeEventListener('simplefile:pane-activate', handlePaneActivate);
+      document.removeEventListener('simplefile:quick-filter-input', handleQuickFilterInput);
+      document.removeEventListener('simplefile:quick-filter-clear', handleQuickFilterClear);
       document.removeEventListener('simplefile:toolbar-icon-size', handleIconSize);
       document.removeEventListener('simplefile:toast', handleToast);
       document.removeEventListener('simplefile:open-settings', handleSettingsOpen);

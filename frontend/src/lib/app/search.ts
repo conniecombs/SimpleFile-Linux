@@ -102,10 +102,10 @@ import { onMount } from 'svelte';
     TransferResult,
   } from '../types';
 import { localState } from './localState.svelte';
-import type { PaneId } from "../fileNavigation.js";
+import type { PaneId } from "../paneSession.js";
+import { createPaneSearchState } from "../paneSession.js";
 import { escapeHtml } from "./core.js";
-import { findEntry } from "../localCommandSelection.js";
-import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusBar, selectedSetForPane, currentSelectionPaths, findSecondaryEntry, setElementText } from "./core.js";
+import { showHtmlDialog, uniqueId, applyPaneFilters, selectPanePaths, updateStatusBar, selectedSetForPane, currentSelectionPaths, findEntryInPane, setElementText, sessionForPane, activePaneId } from "./core.js";
 
   export function setSearchControlsVisible({ clear = false, cancel = false } = {}) {
     const clearBtn = document.getElementById('search-clear') as HTMLElement | null;
@@ -114,24 +114,27 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     if (cancelBtn) cancelBtn.style.display = cancel ? 'inline-flex' : 'none';
   }
 
-  export function renderSearchHeader() {
-    if (!appState.searchMode) {
-      clearSearchResultsHeader(document.querySelector('.search-results-header'));
+  export function renderSearchHeader(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    const listId = pane === 'secondary' ? 'secondary-file-list' : 'file-list';
+    const list = document.getElementById(listId);
+    if (!session.search.searchMode) {
+      clearSearchResultsHeader(list?.parentElement?.querySelector(':scope > .search-results-header'));
       return;
     }
 
-    const count = appState.searchResults?.length || 0;
+    const count = session.search.results?.length || 0;
     renderSearchResultsHeader(
-      document.getElementById('file-list')?.parentElement,
-      document.getElementById('file-list'),
+      list?.parentElement,
+      list,
       {
         clearLabel: 'Clear',
-        label: `${count} result${count === 1 ? '' : 's'} for "${appState.searchQuery}"`,
+        label: `${count} result${count === 1 ? '' : 's'} for "${session.search.query}"`,
         onClear: () => {
-          void clearSearch();
+          void clearSearch(pane);
         },
         onSave: () => {
-          void saveCurrentSearchAsSmartFolderFlow();
+          void saveCurrentSearchAsSmartFolderFlow(pane);
         },
         saveLabel: 'Save Search',
       },
@@ -154,12 +157,13 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     };
   }
 
-  export function currentSearchOptionsForSmartFolder(): SearchOptions {
+  export function currentSearchOptionsForSmartFolder(pane: PaneId = activePaneId()): SearchOptions {
+    const session = sessionForPane(pane);
     return toSearchCommandOptions({
-      currentPath: appState.currentPath,
-      options: appState.searchOptions ?? {},
-      query: appState.searchQuery,
-      showHiddenFiles: appState.showHiddenFiles,
+      currentPath: session.path,
+      options: (session.search.options ?? {}) as SearchWorkflowOptions,
+      query: session.search.query,
+      showHiddenFiles: session.showHiddenFiles,
     });
   }
 
@@ -171,9 +175,10 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     }
   }
 
-  export async function saveCurrentSearchAsSmartFolderFlow() {
-    const query = String(appState.searchQuery || '').trim();
-    if (!appState.searchMode || !query) {
+  export async function saveCurrentSearchAsSmartFolderFlow(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    const query = String(session.search.query || '').trim();
+    if (!session.search.searchMode || !query) {
       showError('Run a search before saving a smart folder.');
       return;
     }
@@ -207,7 +212,7 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
       icon: '\u2315',
       id: uniqueId('smart-folder'),
       name,
-      search_options: currentSearchOptionsForSmartFolder(),
+      search_options: currentSearchOptionsForSmartFolder(pane),
     };
 
     try {
@@ -243,86 +248,86 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     }
   }
 
-  export function restoreDirectoryEntriesAfterSearch() {
-    if (appState._savedEntries) {
-      appState.entries = appState._savedEntries;
+  export function restoreDirectoryEntriesAfterSearch(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    if (session.search.savedEntries) {
+      session.entries = session.search.savedEntries;
     }
-    appState._savedEntries = null;
+    session.search.savedEntries = null;
   }
 
-  export async function clearSearch() {
-    if (appState.currentSearchId) {
+  export async function clearSearch(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    if (session.search.currentSearchId) {
       try {
-        await cancelSearch(appState.currentSearchId);
+        await cancelSearch(session.search.currentSearchId);
       } catch {
         // The backend may already have finished the search.
       }
     }
 
-    appState.currentSearchId = null;
-    appState.isSearching = false;
-    appState.searchMode = false;
-    appState.searchQuery = '';
-    appState.searchResults = [];
-    appState.searchOptions = null;
-    restoreDirectoryEntriesAfterSearch();
-    const input = document.getElementById('search-input') as HTMLInputElement | null;
-    if (input) input.value = '';
-    setSearchControlsVisible();
-    clearSearchResultsHeader(document.querySelector('.search-results-header'));
-    applyEntryFilters();
-    selectPaths([]);
+    restoreDirectoryEntriesAfterSearch(pane);
+    session.search = createPaneSearchState();
+    if (pane === activePaneId()) {
+      const input = document.getElementById('search-input') as HTMLInputElement | null;
+      if (input) input.value = '';
+      setSearchControlsVisible();
+    }
+    renderSearchHeader(pane);
+    applyPaneFilters(pane);
+    selectPanePaths(pane, []);
   }
 
-  export async function runSearch(query: string, options: SearchWorkflowOptions = {}) {
+  export async function runSearch(query: string, options: SearchWorkflowOptions = {}, pane: PaneId = activePaneId()) {
     const cleanQuery = query.trim();
     if (!cleanQuery) {
-      await clearSearch();
+      await clearSearch(pane);
       return;
     }
 
+    const session = sessionForPane(pane);
     const searchId = `search-${Date.now()}`;
-    if (!appState.searchMode) {
-      appState._savedEntries = appState.entries;
+    if (!session.search.searchMode) {
+      session.search.savedEntries = session.entries;
     }
 
-    appState.currentSearchId = searchId;
-    appState.searchQuery = cleanQuery;
-    appState.searchOptions = { ...options };
-    appState.searchMode = true;
-    appState.isSearching = true;
-    appState.filterQuery = '';
-    appState.selectedEntries = new Set();
+    session.search.currentSearchId = searchId;
+    session.search.query = cleanQuery;
+    session.search.options = { ...options } as Record<string, unknown>;
+    session.search.searchMode = true;
+    session.search.isSearching = true;
+    session.filterQuery = '';
+    session.selectedEntries = new Set();
     rememberRecentSearch(cleanQuery);
-    setSearchControlsVisible({ clear: true, cancel: true });
+    if (pane === activePaneId()) setSearchControlsVisible({ clear: true, cancel: true });
 
     try {
       const results = await searchFiles(toSearchCommandOptions({
-        currentPath: appState.currentPath,
+        currentPath: session.path,
         options,
         query: cleanQuery,
         searchId,
-        showHiddenFiles: appState.showHiddenFiles,
+        showHiddenFiles: session.showHiddenFiles,
       }));
-      if (appState.currentSearchId !== searchId) return;
+      if (session.search.currentSearchId !== searchId) return;
 
       const entries = results.map(searchResultToFileEntry);
-      appState.searchResults = results;
-      appState.entries = entries;
-      appState.filteredEntries = visibleEntries(entries, {
-        showHidden: appState.showHiddenFiles,
-        sortAsc: appState.sortAsc,
-        sortBy: appState.sortBy,
+      session.search.results = entries;
+      session.entries = entries;
+      session.filteredEntries = visibleEntries(entries, {
+        showHidden: session.showHiddenFiles,
+        sortAsc: session.sortAsc,
+        sortBy: session.sortBy,
       });
-      updateStatusBar();
-      renderSearchHeader();
+      if (pane === activePaneId()) updateStatusBar();
+      renderSearchHeader(pane);
     } catch (error) {
       showError(error);
     } finally {
-      if (appState.currentSearchId === searchId) {
-        appState.currentSearchId = null;
-        appState.isSearching = false;
-        setSearchControlsVisible({ clear: true, cancel: false });
+      if (session.search.currentSearchId === searchId) {
+        session.search.currentSearchId = null;
+        session.search.isSearching = false;
+        if (pane === activePaneId()) setSearchControlsVisible({ clear: true, cancel: false });
       }
     }
   }
@@ -332,8 +337,8 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     const result = await showHtmlDialog({
       bodyHtml: renderAdvancedSearchDialog({
         escapeHtml,
-        includeHidden: appState.showHiddenFiles,
-        initialQuery: searchInput?.value || appState.searchQuery || '',
+        includeHidden: sessionForPane().showHiddenFiles,
+        initialQuery: searchInput?.value || sessionForPane().search.query || '',
         recentSearches: getRecentSearches(),
       }),
       confirmText: 'Search',
@@ -351,10 +356,10 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
   }
 
   export async function showPropertiesFlow() {
-    const activePane = appState.activePane as PaneId;
+    const activePane = activePaneId();
     if (selectedSetForPane(activePane).size !== 1) return;
     const selectedPath = currentSelectionPaths()[0];
-    const fallbackEntry = activePane === 'secondary' ? findSecondaryEntry(selectedPath) : findEntry(appState, selectedPath);
+    const fallbackEntry = findEntryInPane(activePane, selectedPath);
     if (!selectedPath || !fallbackEntry) return;
 
     try {
@@ -513,16 +518,13 @@ import { showHtmlDialog, uniqueId, applyEntryFilters, selectPaths, updateStatusB
     }
   }
 
-  export function resetSearchStateForNavigation() {
-    appState.currentSearchId = null;
-    appState.isSearching = false;
-    appState.searchMode = false;
-    appState.searchQuery = '';
-    appState.searchResults = [];
-    appState.searchOptions = null;
-    appState._savedEntries = null;
-    setSearchControlsVisible();
-    clearSearchResultsHeader(document.querySelector('.search-results-header'));
-    const input = document.getElementById('search-input') as HTMLInputElement | null;
-    if (input) input.value = '';
+  export function resetSearchStateForNavigation(pane: PaneId = activePaneId()) {
+    const session = sessionForPane(pane);
+    session.search = createPaneSearchState();
+    renderSearchHeader(pane);
+    if (pane === activePaneId()) {
+      setSearchControlsVisible();
+      const input = document.getElementById('search-input') as HTMLInputElement | null;
+      if (input) input.value = '';
+    }
   }

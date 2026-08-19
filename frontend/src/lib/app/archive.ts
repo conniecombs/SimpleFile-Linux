@@ -101,7 +101,7 @@ import { onMount } from 'svelte';
   } from '../types';
 import { localState } from './localState.svelte';
 import type { PaneId } from "../fileNavigation.js";
-import { setOverlayVisible, singleSelectedEntry, overlayById, setElementText, pathForPane, runWithProgress, refreshSecondaryPane, refreshCurrentDirectory, selectedFileEntries, showHtmlDialog, openEntryPath } from "./core.js";
+import { setOverlayVisible, singleSelectedEntry, overlayById, setElementText, pathForPane, runWithProgress, refreshPane, selectedFileEntries, showHtmlDialog, openEntryPath } from "./core.js";
 
 const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
 
@@ -196,7 +196,7 @@ const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
       localState.currentArchivePath = entry.path;
     }
 
-    const targetDirectory = destination || appState.currentPath;
+    const targetDirectory = destination || pathForPane();
     if (!targetDirectory) return;
 
     const archivePath = localState.currentArchivePath;
@@ -208,8 +208,7 @@ const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
       });
       showSuccess(`Extracted ${basename(archivePath)}`);
       closeArchiveFlow();
-      if (appState.activePane === 'secondary') await refreshSecondaryPane();
-      else await refreshCurrentDirectory();
+      await refreshPane(appState.activePane === 'secondary' ? 'secondary' : 'primary');
     } catch (error) {
       showError(error);
     }
@@ -245,8 +244,7 @@ const archiveExtensions = new Set(['zip', 'tar', 'tar.gz', 'tgz', 'rar']);
               await createArchive(selectedPaths, archivePath, format);
             });
             showSuccess(`Created ${archiveName}`);
-            if (activePane === 'secondary') await refreshSecondaryPane();
-            else await refreshCurrentDirectory();
+            await refreshPane(activePane);
           } catch (error) {
             showError(error);
           }

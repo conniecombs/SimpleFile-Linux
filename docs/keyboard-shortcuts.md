@@ -4,6 +4,10 @@ Shortcuts apply to the file list unless the focus is in a text field. The same
 list is available in the app from the command palette or the keyboard help
 dialog.
 
+In dual pane, navigation shortcuts, tabs, search, sort, view, hidden files, and
+quick filter apply to the **active** pane. `Tab` switches which pane is active.
+The toolbar path bar (`Ctrl+L`) shows and edits that pane's location.
+
 ## Navigation
 
 | Shortcut | Action |
