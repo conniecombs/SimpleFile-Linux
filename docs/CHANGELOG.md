@@ -11,6 +11,20 @@ builds that remain in git history.
 
 ## [Unreleased]
 
+### Removed
+- Deleted leftover generated and unused files that do not belong in a Linux
+  source tree: the GitHub device-flow stubs, the Windows PowerShell-as-admin
+  command, the license-key generator (which embedded a private key), and the
+  vanilla-js settings smoke test that imported deleted frontend paths.
+- Dropped the NSIS updater preference from the Linux-only release workflow.
+- Expanded `.gitignore` so Node/Vite/Tauri/Cargo build outputs, Linux package
+  artifacts, generated platform icon sets, secrets, and local caches stay out
+  of the repository.
+- Rewrote git history to drop previously committed `frontend/node_modules`,
+  `frontend/dist`, Tauri `gen` schemas, updater secrets, and unused
+  Windows/iOS/Android icon sets. Existing clones need a fresh fetch after
+  the force-push.
+
 ---
 
 ## [0.1.0] - 2026-08-18

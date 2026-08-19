@@ -280,25 +280,6 @@ export function gitPush(path: string): Promise<string | void> {
   return invokeCommand('git_push', { path });
 }
 
-export function githubRequestDeviceCode(clientId: string): Promise<any> {
-  return invokeCommand('github_request_device_code', { clientId });
-}
-
-export function githubPollToken(clientId: string, deviceCode: string): Promise<string> {
-  return invokeCommand('github_poll_token', { clientId, deviceCode });
-}
-
-
-
-
-
-
-
-
-
-
-
-
 export function openTerminal(path: PathString): Promise<void> {
   return invokeCommand('open_terminal', { path });
 }

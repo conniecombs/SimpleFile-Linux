@@ -1,10 +1,22 @@
 # Rust
 /target/
 /src-tauri/target/
-/src-tauri/google-oauth-client-id.txt
+**/*.rs.bk
+*.pdb
 
-# Generated Tauri capability/schema files
+# Generated Tauri capability/schema files and bundler scratch
 /src-tauri/gen/
+/src-tauri/WixTools/
+/src-tauri/nsis/
+
+# Generated platform icon sets from `tauri icon`. Linux uses the PNGs in
+# src-tauri/icons/. Keep those source PNGs tracked.
+/src-tauri/icons/android/
+/src-tauri/icons/ios/
+/src-tauri/icons/*.ico
+/src-tauri/icons/*.icns
+/src-tauri/icons/Square*.png
+/src-tauri/icons/StoreLogo.png
 
 # Node
 node_modules/
@@ -12,15 +24,42 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.pnpm-store/
+.npm/
 
 # Frontend build and caches
 dist/
 build/
 /frontend/dist/
 /frontend/.vite/
+/frontend/.svelte-kit/
+/frontend/src/vanilla-js/generated-svelte/
 *.tsbuildinfo
 .eslintcache
 .svelte-kit/
+.turbo/
+.cache/
+.parcel-cache/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+*.lcov
+lcov.info
+*.profraw
+*.profdata
+
+# Local Linux package / bundle outputs
+*.deb
+*.rpm
+*.AppImage
+*.appimage
+*.flatpak
+*.snap
+
+# Flatpak
+.flatpak-builder/
+build-dir/
 
 # IDE / editor
 .idea/
@@ -30,14 +69,12 @@ build/
 *~
 *.orig
 *.rej
+*.bak
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Tauri
-/src-tauri/WixTools/
 
 # Local release/update signing secrets. Never commit updater keys.
 /.secrets/
@@ -47,10 +84,19 @@ desktop.ini
 .env
 .env.*
 !.env.example
+/src-tauri/google-oauth-client-id.txt
 
-# Flatpak
-.flatpak-builder/
-build-dir/
+# Logs and cores
+*.log
+logs/
+core
+core.*
+
+# Python leftovers from old helper scripts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
 
 # Tauri configuration backups
 *-v1.backup

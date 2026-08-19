@@ -17,7 +17,6 @@ mod models;
 
 mod open_with;
 
-mod dummy_commands;
 mod preview;
 mod progress;
 mod rar_installer;
@@ -181,7 +180,6 @@ pub fn run() {
             archive::extract_archive,
             archive::create_archive,
             terminal::open_terminal,
-            terminal::open_powershell_admin,
             checksum::compute_checksum,
             rar_installer::check_rar_installed,
             rar_installer::install_rar,
@@ -209,8 +207,6 @@ pub fn run() {
             tags::set_tags_for_path,
             tags::get_files_with_tag,
             tags::get_all_file_tags,
-            dummy_commands::github_poll_token,
-            dummy_commands::github_request_device_code,
         ])
         .run(tauri::generate_context!());
 

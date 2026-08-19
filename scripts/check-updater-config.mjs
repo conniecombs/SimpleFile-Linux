@@ -45,7 +45,6 @@ const requiredWorkflowSnippets = [
     'src-tauri/tauri.local.conf.json',
     'uploadUpdaterJson: ${{ steps.signing.outputs.upload_updater }}',
     'uploadUpdaterSignatures: ${{ steps.signing.outputs.upload_updater }}',
-    'updaterJsonPreferNsis: true',
 ];
 
 for (const snippet of requiredWorkflowSnippets) {

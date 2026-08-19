@@ -317,10 +317,7 @@ export interface TauriCommandMap {
   get_xdg_dirs: CommandContract<Record<string, never>, Record<string, string | null>>;
   git_pull: CommandContract<{ path?: string }, string | void>;
   git_push: CommandContract<{ path?: string }, string | void>;
-  github_request_device_code: CommandContract<{ clientId?: string }, any>;
-  github_poll_token: CommandContract<{ clientId?: string; deviceCode: string }, string>;
   open_terminal: CommandContract<{ path: PathString }, void>;
-  open_powershell_admin: CommandContract<{ path: PathString }, void>;
   search_files: CommandContract<{ options: SearchOptions }, SearchResult[]>;
   cancel_search: CommandContract<{ searchId: string }, void>;
   

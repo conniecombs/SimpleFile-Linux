@@ -69,12 +69,6 @@ Local packaging without updater artifacts:
 npm run release:local
 ```
 
-Settings and startup smoke test (no desktop window):
-
-```bash
-npm run smoke:settings
-```
-
 Local signed bundle:
 
 ```bash

@@ -48,8 +48,3 @@ pub async fn open_terminal(path: String) -> Result<(), String> {
         Err("Failed to open terminal: no supported terminal emulator was found".to_string())
     }
 }
-
-#[tauri::command]
-pub async fn open_powershell_admin(_path: String) -> Result<(), String> {
-    Err("PowerShell as Administrator is only available on Windows".to_string())
-}

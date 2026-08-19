@@ -933,7 +933,6 @@ async function invokeDevCommand<Name extends TauriCommandName>(
       return undefined as CommandResult<Name>;
     case 'open_file':
     case 'open_terminal':
-    case 'open_powershell_admin':
     case 'open_file_with':
     case 'reveal_in_folder':
     case 'cancel_operation':

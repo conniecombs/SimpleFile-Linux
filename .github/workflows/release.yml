@@ -251,7 +251,6 @@ jobs:
           prerelease: ${{ needs.validate.outputs.prerelease }}
           uploadUpdaterJson: ${{ steps.signing.outputs.upload_updater }}
           uploadUpdaterSignatures: ${{ steps.signing.outputs.upload_updater }}
-          updaterJsonPreferNsis: true
           args: --target ${{ matrix.target }} ${{ steps.signing.outputs.config_args }}
 
   publish:

@@ -106,7 +106,6 @@ const releaseSnippets = [
     'tauri-apps/tauri-action@',
     'uploadUpdaterJson: ${{ steps.signing.outputs.upload_updater }}',
     'uploadUpdaterSignatures: ${{ steps.signing.outputs.upload_updater }}',
-    'updaterJsonPreferNsis: true',
     'args: --target ${{ matrix.target }} ${{ steps.signing.outputs.config_args }}',
     'Linux installers are attached below.',
     'softprops/action-gh-release@v3',
@@ -130,6 +129,7 @@ const forbiddenDesktopTargets = [
     'macos-15-intel',
     'x86_64-apple-darwin',
     'aarch64-apple-darwin',
+    'updaterJsonPreferNsis',
     'Cross-platform installers are attached below.',
 ];
 
