@@ -308,6 +308,8 @@ export function initApp() {
         togglePaneView();
         appState.settings = { ...appState.settings, defaultView: sessionForPane().isGridView ? 'grid' : 'list' };
         saveSettings();
+      } else if (command === 'hidden-toggle') {
+        togglePaneHiddenFiles();
       } else if (command === 'preview-toggle') {
         appState.showPreviewPane = !appState.showPreviewPane;
         if (appState.showPreviewPane) void updatePreviewPane();

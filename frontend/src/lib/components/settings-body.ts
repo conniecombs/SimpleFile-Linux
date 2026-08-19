@@ -2,7 +2,16 @@ import { mount, unmount } from 'svelte';
 
 import SettingsBody from './settings-body/SettingsBody.svelte';
 
-export type SettingsTab = 'general' | 'tools' | 'updates';
+export type SettingsTab =
+  | 'appearance'
+  | 'browser'
+  | 'startup'
+  | 'files'
+  | 'integration'
+  | 'about'
+  | 'general'
+  | 'tools'
+  | 'updates';
 
 export type RenderSettingsBodyProps = {
   activeTab?: SettingsTab;
@@ -37,7 +46,7 @@ export function renderSettingsBody(
   const component = mount(SettingsBody, {
     target,
     props: {
-      activeTab: props.activeTab ?? 'general',
+      activeTab: props.activeTab ?? 'appearance',
     },
   });
 

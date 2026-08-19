@@ -10,7 +10,9 @@ list. The complete shortcut table is in [keyboard-shortcuts.md](keyboard-shortcu
 
 - **Sidebar:** Quick Access (XDG user directories), bookmarks, recent
   locations, mounted volumes, smart folders, and the folder tree.
-- **Toolbar:** Back/forward, path bar, view controls, search, and more actions.
+- **Toolbar:** Back/forward, path bar, search, list/grid, dual pane, preview,
+  and a View and tools menu. File operations stay on the context menu,
+  shortcuts, and command palette.
 - **File list:** List or grid view of the current folder, with optional dual
   pane.
 - **Preview pane:** Optional side panel for the highlighted item.
@@ -38,7 +40,7 @@ Hidden files stay hidden until you toggle them (`Ctrl+H` or Settings).
 - **List view** shows configurable columns: name, size, item count, date, and
   type. Right-click a column header to show or hide columns. Drag the divider
   between headers to resize.
-- **Grid view** shows icons. Icon size is available from the toolbar.
+- **Grid view** shows icons. Icon size is in View and tools when grid is on.
 - Click a column header to sort. Click again to reverse the order.
 - Arrow keys, Home, and End move the highlight. Type-ahead jumps to names that
   start with the letters you type.

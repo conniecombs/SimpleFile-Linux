@@ -36,6 +36,11 @@ SimpleFile-Linux/
 `legacy-shell-template.html` still hosts older modal markup that action code
 addresses by element id (archives, keyboard help, About, progress).
 
+The toolbar is navigation and view controls. File operations belong on the
+context menu, keyboard shortcuts, and command palette. Settings is a
+sectioned preferences surface (`Appearance`, `Browser`, `Startup`, `Files`,
+`Integration`, `About`).
+
 State lives in `frontend/src/lib/app/state.svelte.ts`. Browse state is a
 `PaneSession` per pane (`frontend/src/lib/paneSession.ts`): path, listing,
 selection, history, tabs, sort, view, hidden files, filter, and search. Dual

@@ -17,6 +17,14 @@ builds that remain in git history.
   search. Shared chrome (sidebar, tree, toolbar, tab bar, `Ctrl+L`) always
   navigates the active pane. Directory watching covers both open folders.
 
+### Changed
+- Toolbar is navigation plus a view cluster (list/grid, dual pane, preview).
+  File operations stay in the context menu, shortcuts, and command palette.
+  View and tools holds hidden files, theme, new folder/file, terminal, cleanup,
+  duplicates, undo, and Settings.
+- Settings uses a section list: Appearance, Browser, Startup, Files,
+  Integration, and About, with short hints on each control.
+
 ### Removed
 - Deleted leftover generated and unused files that do not belong in a Linux
   source tree: the GitHub device-flow stubs, the Windows PowerShell-as-admin

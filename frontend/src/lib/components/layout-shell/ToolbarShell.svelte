@@ -8,21 +8,16 @@
   type ToolbarCommand =
     | 'back'
     | 'clipboard-history'
-    | 'color-label'
-    | 'copy'
-    | 'cut'
-    | 'delete'
     | 'disk-cleanup'
     | 'find-duplicates'
     | 'dual-pane'
     | 'folder-metrics'
     | 'forward'
+    | 'hidden-toggle'
     | 'new-file'
     | 'new-folder'
-    | 'paste'
     | 'preview-toggle'
     | 'redo'
-    | 'rename'
     | 'refresh'
     | 'terminal'
     | 'theme-toggle'
@@ -37,14 +32,13 @@
   let activeSession = $derived(appState.panes?.[appState.activePane === 'secondary' ? 'secondary' : 'primary'] || appState.panes?.primary);
   let activeSelection = $derived(activeSession?.selectedEntries || new Set());
   let activeEntries = $derived(activeSession?.filteredEntries || []);
-  let hasSelection = $derived(activeSelection.size > 0);
-  let hasClipboard = $derived((appState.clipboard?.length || 0) > 0);
   let hasRedo = $derived((appState.redoStack || []).some((entry: any) => typeof entry?.redo === 'function'));
   let hasUndo = $derived((appState.undoStack?.length || 0) > 0);
   let hasFolderSelection = $derived.by(() => {
     const selectedPaths = new Set(activeSelection);
     return activeEntries.some((entry: any) => selectedPaths.has(entry.path) && entry.is_dir);
   });
+  let isSearching = $derived(Boolean(activeSession?.search?.isSearching || activeSession?.search?.searchMode));
 
   let pathSegments = $derived(breadcrumbSegments(activeSession?.path || '') as BreadcrumbSegment[]);
   let canGoBack = $derived((activeSession?.historyIndex || 0) > 0);
@@ -177,10 +171,10 @@
     <div class="path-autocomplete" id="path-autocomplete" role="listbox" aria-label="Path suggestions" style="display:none;"></div>
   </div>
 
-  <div class="search-bar" role="search">
-    <input bind:this={searchInputElement} type="text" id="search-input" class="search-input" placeholder="Search files..." aria-label="Search files" onkeydown={handleSearchKeydown} />
-    <button class="search-btn" id="search-btn" title="Search" aria-label="Start search" onclick={emitSearchSubmit}>🔍</button>
-    <button class="search-btn" id="search-advanced" title="Advanced Search" aria-label="Advanced search options" onclick={(event) => emitFromTarget(SEARCH_OPEN_ADVANCED_EVENT, event)}>
+  <div class:searching={isSearching} class="search-bar search-field" role="search">
+    <button class="search-field-btn" id="search-btn" type="button" title="Search" aria-label="Start search" onclick={emitSearchSubmit}>🔍</button>
+    <input bind:this={searchInputElement} type="text" id="search-input" class="search-input" placeholder="Search files…" aria-label="Search files" onkeydown={handleSearchKeydown} />
+    <button class="search-field-btn" id="search-advanced" type="button" title="Advanced Search" aria-label="Advanced search options" onclick={(event) => emitFromTarget(SEARCH_OPEN_ADVANCED_EVENT, event)}>
       <svg class="search-advanced-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M4 7h10" />
         <path d="M18 7h2" />
@@ -190,23 +184,30 @@
         <circle cx="8" cy="17" r="2" />
       </svg>
     </button>
-    <button class="search-clear-btn" id="search-cancel" title="Cancel Search" aria-label="Cancel search" style:display={activeSession?.search?.isSearching ? 'inline-flex' : 'none'} onclick={(event) => emitFromTarget(SEARCH_CANCEL_EVENT, event)}>■</button>
-    <button class="search-clear-btn" id="search-clear" title="Clear Search" aria-label="Clear search results" style:display={activeSession?.search?.searchMode ? 'inline-flex' : 'none'} onclick={(event) => emitFromTarget(SEARCH_CLEAR_EVENT, event)}>✕</button>
+    {#if activeSession?.search?.isSearching}
+      <button class="search-clear-btn" id="search-cancel" type="button" title="Cancel Search" aria-label="Cancel search" onclick={(event) => emitFromTarget(SEARCH_CANCEL_EVENT, event)}>■</button>
+    {/if}
+    {#if activeSession?.search?.searchMode && !activeSession?.search?.isSearching}
+      <button class="search-clear-btn" id="search-clear" type="button" title="Clear Search" aria-label="Clear search results" onclick={(event) => emitFromTarget(SEARCH_CLEAR_EVENT, event)}>✕</button>
+    {/if}
   </div>
 
-  <div class="toolbar-actions" role="group" aria-label="Actions">
-    <button class="toolbar-btn" id="btn-new-folder" title="New Folder (Ctrl+N)" aria-label="Create new folder" onclick={(event) => emitToolbarCommand(event, 'new-folder')}>
-      <span class="icon" aria-hidden="true">📁+</span>
-    </button>
+  <div class="toolbar-actions" role="group" aria-label="View and tools">
     <button class="toolbar-btn" id="btn-view-toggle" title="Toggle View (List/Grid)" aria-label="Toggle between list and grid view" aria-pressed={Boolean(activeSession?.isGridView)} onclick={(event) => emitToolbarCommand(event, 'view-toggle')}>
-      <span class="icon" aria-hidden="true">⊞</span>
+      <span class="icon" aria-hidden="true">{activeSession?.isGridView ? '▦' : '☰'}</span>
+    </button>
+    <button class="toolbar-btn" id="btn-dual-pane" title="Dual Pane (F6)" aria-label="Toggle dual pane view" aria-pressed={appState.dualPaneEnabled} data-active={appState.dualPaneEnabled} onclick={(event) => emitToolbarCommand(event, 'dual-pane')}>
+      <span class="icon" aria-hidden="true">▯▯</span>
+    </button>
+    <button class="toolbar-btn" id="btn-preview-toggle" title="Preview Pane" aria-label="Toggle preview pane" aria-pressed={appState.showPreviewPane} data-active={appState.showPreviewPane} onclick={(event) => emitToolbarCommand(event, 'preview-toggle')}>
+      <span class="icon" aria-hidden="true">◧</span>
     </button>
     <div class="more-actions-wrapper" bind:this={moreActionsWrapper}>
       <button
         class="toolbar-btn"
         id="btn-more-actions"
-        title="More actions"
-        aria-label="More actions"
+        title="View and tools"
+        aria-label="View and tools"
         aria-haspopup="true"
         aria-expanded={isMoreActionsOpen}
         onclick={toggleMoreActions}
@@ -218,55 +219,49 @@
         class="more-actions-dropdown"
         id="more-actions-dropdown"
         role="menu"
-        aria-label="More actions"
+        aria-label="View and tools"
         tabindex="-1"
       >
         <div class="more-actions-group">
-          <button class="more-actions-item toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled={!hasUndo} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'undo')}>
-            <span class="icon" aria-hidden="true">↩</span>
-            <span class="more-actions-label">Undo</span>
+          <div class="more-actions-section-header">View</div>
+          <button class="more-actions-item toolbar-btn" id="btn-hidden-toggle" title="Toggle Hidden Files (Ctrl+H)" aria-label="Toggle hidden files" data-active={Boolean(activeSession?.showHiddenFiles)} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'hidden-toggle')}>
+            <span class="icon" aria-hidden="true">👁</span>
+            <span class="more-actions-label">Hidden Files</span>
+            <span class="more-actions-shortcut">Ctrl+H</span>
           </button>
-          <button class="more-actions-item toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo" disabled={!hasRedo} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'redo')}>
-            <span class="icon" aria-hidden="true">↪</span>
-            <span class="more-actions-label">Redo</span>
+          <button class="more-actions-item toolbar-btn" id="btn-theme-toggle" title="Toggle Theme" aria-label="Toggle dark/light theme" data-active={appState.theme === 'light'} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'theme-toggle')}>
+            <span class="icon" aria-hidden="true">🌙</span>
+            <span class="more-actions-label">{appState.theme === 'light' ? 'Dark Theme' : 'Light Theme'}</span>
           </button>
-          <button class="more-actions-item toolbar-btn" id="btn-clipboard-history" title="Clipboard History (Ctrl+Shift+V)" aria-label="Show clipboard history" role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'clipboard-history')}>
-            <span class="icon" aria-hidden="true">📋</span>
-            <span class="more-actions-label">Clipboard History</span>
-          </button>
+          {#if activeSession?.isGridView}
+            <div class="more-actions-row icon-size-control" id="icon-size-control">
+              <span class="icon" aria-hidden="true">⊞</span>
+              <span class="more-actions-label">Icon Size</span>
+              <input type="range" id="icon-size-slider" min="48" max="128" value={appState.iconSize} title="Icon Size" aria-label="Adjust icon size" oninput={(event) => emitIconSize(event)} onchange={(event) => emitIconSize(event, true)} />
+            </div>
+          {/if}
         </div>
         <div class="more-actions-divider" role="separator"></div>
         <div class="more-actions-group">
+          <div class="more-actions-section-header">Create</div>
+          <button class="more-actions-item toolbar-btn" id="btn-new-folder" title="New Folder (Ctrl+N)" aria-label="Create new folder" role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'new-folder')}>
+            <span class="icon" aria-hidden="true">📁</span>
+            <span class="more-actions-label">New Folder</span>
+            <span class="more-actions-shortcut">Ctrl+N</span>
+          </button>
           <button class="more-actions-item toolbar-btn" id="btn-new-file" title="New File (Ctrl+Shift+N)" aria-label="Create new file" role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'new-file')}>
-            <span class="icon" aria-hidden="true">📄+</span>
+            <span class="icon" aria-hidden="true">📄</span>
             <span class="more-actions-label">New File</span>
-          </button>
-          <button class="more-actions-item toolbar-btn" id="btn-rename" title="Rename (F2)" aria-label="Rename selected item" disabled={!hasSelection} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'rename')}>
-            <span class="icon" aria-hidden="true">✎</span>
-            <span class="more-actions-label">Rename</span>
-          </button>
-          <button class="more-actions-item toolbar-btn" id="btn-copy" title="Copy (Ctrl+C)" aria-label="Copy selected items" disabled={!hasSelection} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'copy')}>
-            <span class="icon" aria-hidden="true">⧉</span>
-            <span class="more-actions-label">Copy</span>
-          </button>
-          <button class="more-actions-item toolbar-btn" id="btn-cut" title="Cut (Ctrl+X)" aria-label="Cut selected items" disabled={!hasSelection} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'cut')}>
-            <span class="icon" aria-hidden="true">✂</span>
-            <span class="more-actions-label">Cut</span>
-          </button>
-          <button class="more-actions-item toolbar-btn" id="btn-paste" title="Paste (Ctrl+V)" aria-label="Paste copied items" disabled={!hasClipboard} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'paste')}>
-            <span class="icon" aria-hidden="true">▣</span>
-            <span class="more-actions-label">Paste</span>
-          </button>
-          <button class="more-actions-item toolbar-btn danger-action" id="btn-delete" title="Delete" aria-label="Delete selected items" disabled={!hasSelection} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'delete')}>
-            <span class="icon" aria-hidden="true">⌫</span>
-            <span class="more-actions-label">Delete</span>
+            <span class="more-actions-shortcut">Ctrl+Shift+N</span>
           </button>
         </div>
         <div class="more-actions-divider" role="separator"></div>
         <div class="more-actions-group">
-          <button class="more-actions-item toolbar-btn" id="btn-color-label" title="Set Color Label" aria-label="Set color label for selected items" disabled={!hasSelection} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'color-label')}>
-            <span class="icon" aria-hidden="true">#</span>
-            <span class="more-actions-label">Color Label</span>
+          <div class="more-actions-section-header">Tools</div>
+          <button class="more-actions-item toolbar-btn" id="btn-terminal" title="Open Terminal Here (F4)" aria-label="Open terminal in current folder" role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'terminal')}>
+            <span class="icon" aria-hidden="true">💻</span>
+            <span class="more-actions-label">Open Terminal</span>
+            <span class="more-actions-shortcut">F4</span>
           </button>
           <button class="more-actions-item toolbar-btn" id="btn-folder-metrics" title="Calculate Folder Metrics" aria-label="Calculate selected folder size and item count" disabled={!hasFolderSelection} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'folder-metrics')}>
             <span class="icon" aria-hidden="true">S</span>
@@ -279,32 +274,38 @@
           <button class="more-actions-item toolbar-btn" id="btn-find-duplicates" title="Find Duplicates (Ctrl+Shift+D)" aria-label="Find duplicate files in this folder" disabled={appState.cleanupInProgress} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'find-duplicates')}>
             <span class="icon" aria-hidden="true">⧉</span>
             <span class="more-actions-label">Find Duplicates</span>
+            <span class="more-actions-shortcut">Ctrl+Shift+D</span>
           </button>
         </div>
         <div class="more-actions-divider" role="separator"></div>
         <div class="more-actions-group">
-          <button class="more-actions-item toolbar-btn" id="btn-preview-toggle" title="Toggle Preview Pane" aria-label="Toggle preview pane" data-active={appState.showPreviewPane} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'preview-toggle')}>
-            <span class="icon" aria-hidden="true">◧</span>
-            <span class="more-actions-label">Preview Pane</span>
+          <div class="more-actions-section-header">History</div>
+          <button class="more-actions-item toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled={!hasUndo} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'undo')}>
+            <span class="icon" aria-hidden="true">↩</span>
+            <span class="more-actions-label">Undo</span>
+            <span class="more-actions-shortcut">Ctrl+Z</span>
           </button>
-          <button class="more-actions-item toolbar-btn" id="btn-theme-toggle" title="Toggle Theme" aria-label="Toggle dark/light theme" data-active={appState.theme === 'light'} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'theme-toggle')}>
-            <span class="icon" aria-hidden="true">🌙</span>
-            <span class="more-actions-label">Toggle Theme</span>
+          <button class="more-actions-item toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo" disabled={!hasRedo} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'redo')}>
+            <span class="icon" aria-hidden="true">↪</span>
+            <span class="more-actions-label">Redo</span>
+            <span class="more-actions-shortcut">Ctrl+Y</span>
           </button>
-          <button class="more-actions-item toolbar-btn" id="btn-dual-pane" title="Toggle Dual Pane (F6)" aria-label="Toggle dual pane view" data-active={appState.dualPaneEnabled} role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'dual-pane')}>
-            <span class="icon" aria-hidden="true">▯▯</span>
-            <span class="more-actions-label">Dual Pane</span>
-          </button>
-          <button class="more-actions-item toolbar-btn" id="btn-terminal" title="Open Terminal Here" aria-label="Open terminal in current folder" role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'terminal')}>
-            <span class="icon" aria-hidden="true">💻</span>
-            <span class="more-actions-label">Open Terminal</span>
+          <button class="more-actions-item toolbar-btn" id="btn-clipboard-history" title="Clipboard History (Ctrl+Shift+V)" aria-label="Show clipboard history" role="menuitem" onclick={(event) => emitMoreActionCommand(event, 'clipboard-history')}>
+            <span class="icon" aria-hidden="true">📋</span>
+            <span class="more-actions-label">Clipboard History</span>
+            <span class="more-actions-shortcut">Ctrl+Shift+V</span>
           </button>
         </div>
         <div class="more-actions-divider" role="separator"></div>
-        <div class="more-actions-row icon-size-control" id="icon-size-control">
-          <span class="icon" aria-hidden="true">⊞</span>
-          <span class="more-actions-label">Icon Size</span>
-          <input type="range" id="icon-size-slider" min="48" max="128" value={appState.iconSize} title="Icon Size" aria-label="Adjust icon size" oninput={(event) => emitIconSize(event)} onchange={(event) => emitIconSize(event, true)} />
+        <div class="more-actions-group">
+          <button class="more-actions-item toolbar-btn" id="btn-open-settings" title="Settings" aria-label="Open settings" role="menuitem" onclick={(event) => { emitFromTarget('simplefile:open-settings', event); closeMoreActions(); }}>
+            <span class="icon" aria-hidden="true">⚙</span>
+            <span class="more-actions-label">Settings</span>
+          </button>
+          <button class="more-actions-item toolbar-btn" id="btn-keyboard-help" title="Keyboard Shortcuts" aria-label="Keyboard shortcuts" role="menuitem" onclick={(event) => { emitFromTarget('simplefile:keyboard-help', event); closeMoreActions(); }}>
+            <span class="icon" aria-hidden="true">?</span>
+            <span class="more-actions-label">Keyboard Shortcuts</span>
+          </button>
         </div>
       </div>
     </div>

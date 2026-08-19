@@ -37,6 +37,7 @@
     { id: 'terminal', label: 'Open Terminal', action: () => dispatchToolbarCommand('terminal') },
     { id: 'preview', label: 'Toggle Preview Pane', action: () => dispatchToolbarCommand('preview-toggle') },
     { id: 'dual-pane', label: 'Toggle Dual Pane', action: () => dispatchToolbarCommand('dual-pane') },
+    { id: 'hidden-toggle', label: 'Toggle Hidden Files', action: () => dispatchToolbarCommand('hidden-toggle') },
     { id: 'refresh', label: 'Refresh', action: () => dispatchToolbarCommand('refresh') },
     { id: 'search', label: 'Focus Search', action: () => document.dispatchEvent(new CustomEvent('simplefile:focus-search')) },
     { id: 'quick-look', label: 'Quick Look', action: () => document.dispatchEvent(new CustomEvent('simplefile:quick-look')) },
@@ -52,7 +53,7 @@
       label: 'Git: Pull (Current Directory)', 
       action: async () => {
         try {
-          const currentDir = globalState.tabs.find((t: any) => t.id === globalState.activeTabId)?.path || '.';
+          const currentDir = globalState.panes?.[globalState.activePane === 'secondary' ? 'secondary' : 'primary']?.path || '.';
           const out = await gitPull(currentDir);
           const toast = new CustomEvent('simplefile:toast', { detail: { message: `Git Pull Success:\n${out}`, type: 'success' }});
           document.dispatchEvent(toast);
@@ -67,7 +68,7 @@
       label: 'Git: Push (Current Directory)', 
       action: async () => {
         try {
-          const currentDir = globalState.tabs.find((t: any) => t.id === globalState.activeTabId)?.path || '.';
+          const currentDir = globalState.panes?.[globalState.activePane === 'secondary' ? 'secondary' : 'primary']?.path || '.';
           const out = await gitPush(currentDir);
           const toast = new CustomEvent('simplefile:toast', { detail: { message: `Git Push Success:\n${out}`, type: 'success' }});
           document.dispatchEvent(toast);
